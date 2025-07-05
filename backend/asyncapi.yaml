@@ -1,0 +1,91 @@
+asyncapi: 3.0.0
+info:
+  title: Echoform Authoritative Server
+  version: '0.0.1'
+  description: |
+    This is the authoritative server for Echoform, a cozy MMORPG game.
+servers:
+  production:
+    host: echoform.floffah.dev
+    protocol: wss
+channels:
+  client:
+    servers:
+      - $ref: '#/servers/production'
+    address: /client
+    messages:
+      acknowledge:
+        $ref: '#/components/messages/acknowledge'
+      welcome:
+        $ref: '#/components/messages/welcome'
+    bindings:
+      ws:
+        headers:
+          type: object
+          properties:
+            Device:
+              type: string
+              description: The device type of the client
+operations:
+  connect:
+    action: receive
+    channel:
+      $ref: '#/channels/client'
+    messages:
+      - $ref: '#/channels/client/messages/acknowledge'
+      - $ref: '#/channels/client/messages/welcome'
+components:
+  messages:
+    acknowledge:
+      summary: Message sent by the server to acknowledge the connection.
+      payload:
+        type: object
+        additionalProperties: false
+        properties:
+          id:
+            type: string
+            const: acknowledge
+          data:
+            type: object
+            additionalProperties: false
+            properties:
+              connectionId:
+                type: string
+                description: The connection ID of the client.
+                format: nanoid
+    welcome:
+      summary: Message sent by the server to welcome the client.
+      payload:
+        type: object
+        additionalProperties: false
+        properties:
+          id:
+            type: string
+            const: welcome
+          data:
+            type: object
+            additionalProperties: false
+            properties:
+              serverVersion:
+                type: string
+                description: The version of the server.
+                format: semver
+              environment:
+                type: string
+                description: The environment the server is running in (e.g., production, staging).
+                enum:
+                  - test
+                  - development
+                  - production
+              featureFlags:
+                type: array
+                description: Feature flags for the client to enable/disable features.
+                items:
+                  type: string
+                  enum:
+                    - enableExperimentalFeatures
+                    - enableDebugMode
+              reconnectionToken:
+                type: string
+                description: A token used for reconnection attempts.
+                format: nanoid

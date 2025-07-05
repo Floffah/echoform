@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1749926607979,
+      "tag": "0000_foamy_kat_farrell",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1749979181905,
+      "tag": "0001_cooing_toxin",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751139758895,
+      "tag": "0002_chubby_silver_sable",
+      "breakpoints": true
+    }
+  ]
+}

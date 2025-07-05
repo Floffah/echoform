@@ -1,0 +1,15 @@
+name: "localfly"
+services:
+  localfly:
+    container_name: localfly
+    build: .
+    ports:
+      - "8080:3000"
+    volumes:
+      - ./localfly.db:/usr/src/app/localfly.db
+      - /var/run/docker.sock:/var/run/docker.sock
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /src

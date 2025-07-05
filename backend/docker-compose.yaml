@@ -1,0 +1,15 @@
+name: "echoform"
+services:
+  pubsub:
+    image: valkey/valkey
+    ports:
+      - "6379:6379"
+  db:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: echoform
+      POSTGRES_PASSWORD: echoform
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: echoform-authoritative
