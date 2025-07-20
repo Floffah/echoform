@@ -2,7 +2,6 @@ import { Hono } from "hono";
 
 import { db } from "@/db";
 import { apps } from "@/db/schema";
-import { docker } from "@/lib/docker.ts";
 
 import type {
     SchemaCreateAppRequest,
@@ -28,7 +27,7 @@ appsHono.get("/", async (c) => {
 });
 
 appsHono.post("/", async (c) => {
-    const { app_name, enable_subdomains, network, org_slug } =
+    const { app_name, org_slug } =
         await c.req.json<SchemaCreateAppRequest>();
 
     if (!app_name || !org_slug) {
