@@ -1,0 +1,5 @@
+moon = "latest"
+bun = "1.2.17"
+
+[settings]
+auto-install = true

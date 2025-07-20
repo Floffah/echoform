@@ -1,11 +1,24 @@
 import { EnforcedStateName } from "@/enums/EnforcedStateName.ts";
 import { SceneName } from "@/enums/SceneName.ts";
 import { defineHandler } from "@/lib/defineHandler.ts";
+import { ErrorCode } from "@/enums/ErrorCode.ts";
 
 export const clientReady = defineHandler(
     "client_ready",
     async (_message, conn, ws) => {
         if (!conn.isInPlay()) {
+            return;
+        }
+
+        if (conn.clientReady) {
+            conn.send(ws, {
+                id: "error",
+                data: {
+                    message: "Client is already ready.",
+                    code: ErrorCode.CLIENT_ALREADY_READY,
+                    fatal: false,
+                },
+            });
             return;
         }
 

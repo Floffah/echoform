@@ -20,14 +20,12 @@ public class PacketTranslator {
             case PacketId.Welcome:
                 packet = new WelcomePacket();
                 break;
+            case PacketId.SetEnforcedState:
+                packet = new SetEnforcedStatePacket();
+                break;
             default:
                 GD.PrintErr("Unknown packet id: ", packetId);
                 return null;
-        }
-
-        if (packet == null) {
-            GD.PrintErr("Failed to create packet for id: ", packetId);
-            return null;
         }
 
         packet.Id = packetId;

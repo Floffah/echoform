@@ -5,6 +5,8 @@ using Godot.Collections;
 public partial class AuthoritativeServerConnection : Node {
     public static AuthoritativeServerConnection Instance { get; private set; }
 
+    public Dictionary<string, bool> EnforcedState { get; private set; } = new();
+
     private WebSocketPeer _socket;
 
     private string _accessToken;

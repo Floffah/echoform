@@ -1,0 +1,12 @@
+$schema: '../.moon/cache/schemas/project.json'
+
+type: 'application'
+language: 'typescript'
+toolchain:
+  bun: {}
+
+project:
+  name: 'moon'
+  description: 'A repo management tool.'
+  channel: '#moon'
+  maintainers: ['floffah']
