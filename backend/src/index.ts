@@ -179,6 +179,107 @@ app.post(
     },
 );
 
+app.get(
+    "/v1/cosmetics",
+    describeRoute({
+        operationId: "getCosmetics",
+        summary: "Get all available cosmetics",
+        tags: ["v1"],
+        responses: {
+            200: {
+                description: "List of available cosmetics",
+                content: {
+                    "application/json": {
+                        schema: resolver(
+                            z.array(
+                                z.object({
+                                    id: z.number(),
+                                    type: z.string(),
+                                    slot: z.string(),
+                                    name: z.string(),
+                                    description: z.string().nullable(),
+                                }),
+                            ),
+                        ),
+                    },
+                },
+            },
+        },
+    }),
+    async (c) => {
+        const allCosmetics = await db.query.cosmetics.findMany();
+        return c.json(allCosmetics);
+    },
+);
+
+app.get(
+    "/v1/user/cosmetics",
+    describeRoute({
+        operationId: "getUserCosmetics",
+        summary: "Get user cosmetics",
+        tags: ["v1"],
+        responses: {
+            200: {
+                description: "User cosmetics",
+                content: {
+                    "application/json": {
+                        schema: resolver(
+                            z.array(
+                                z.object({
+                                    id: z.number(),
+                                    userId: z.number(),
+                                    cosmeticId: z.number(),
+                                    owned: z.boolean(),
+                                    equipped: z.boolean(),
+                                }),
+                            ),
+                        ),
+                    },
+                },
+            },
+            401: {
+                description: "Unauthorized",
+            },
+        },
+    }),
+    async (c) => {
+        const bearerAuth = c.req.header("Authorization");
+
+        if (!bearerAuth) {
+            return c.json({ error: "Missing authorization header" }, 401);
+        }
+
+        const [scheme, token] = bearerAuth.split(" ");
+
+        if (scheme?.toLowerCase() !== "bearer") {
+            return c.json({ error: "Invalid authorization scheme" }, 401);
+        }
+
+        if (!token) {
+            return c.json({ error: "Missing token" }, 401);
+        }
+
+        const userSession = await db.query.userSessions.findFirst({
+            where: (userSessions, { eq, and, gt }) =>
+                and(
+                    eq(userSessions.accessToken, token),
+                    gt(userSessions.expiresAt, new Date()),
+                ),
+        });
+
+        if (!userSession) {
+            return c.json({ error: "Invalid or expired token" }, 401);
+        }
+
+        const userCosmetics = await db.query.userCosmetics.findMany({
+            where: (userCosmetics, { eq }) =>
+                eq(userCosmetics.userId, userSession.userId),
+        });
+
+        return c.json(userCosmetics);
+    },
+);
+
 const openapiServers = [
     {
         description: "Production server",
