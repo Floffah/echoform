@@ -8,6 +8,8 @@ import { basePacketSchema } from "@/protocol/packet/base.ts";
 import {
     environmentSchema,
     featureFlagNameSchema,
+    cosmeticSchema,
+    userCosmeticSchema,
 } from "@/protocol/schemas.ts";
 
 export const keepalivePacketSchema = basePacketSchema.extend({
@@ -68,6 +70,20 @@ export const setEnforcedStatePacketSchema = basePacketSchema.extend({
     }),
 });
 
+export const cosmeticsListPacketSchema = basePacketSchema.extend({
+    id: z.literal("cosmetics_list"),
+    data: z.object({
+        cosmetics: z.array(cosmeticSchema),
+    }),
+});
+
+export const userCosmeticsPacketSchema = basePacketSchema.extend({
+    id: z.literal("user_cosmetics"),
+    data: z.object({
+        userCosmetics: z.array(userCosmeticSchema),
+    }),
+});
+
 export const clientboundPacket = z.union([
     keepalivePacketSchema,
     errorPacketSchema,
@@ -76,6 +92,8 @@ export const clientboundPacket = z.union([
     welcomePacketSchema,
     forceScenePacketSchema,
     setEnforcedStatePacketSchema,
+    cosmeticsListPacketSchema,
+    userCosmeticsPacketSchema,
 ]);
 
 export type ClientboundPacket = z.infer<typeof clientboundPacket>;
