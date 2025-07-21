@@ -1,10 +1,10 @@
 import { Database } from "bun:sqlite";
 import type { Logger } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { resolve } from "path";
 
 import { logger } from "@/lib/logger.ts";
+import { runEmbeddedMigrations } from "./migrations.ts";
 
 import * as schema from "./schema";
 
@@ -19,11 +19,9 @@ const db = drizzle(sqlite, {
     } as Logger,
 });
 
-// Run migrations if they exist
+// Run embedded migrations
 try {
-    migrate(db, {
-        migrationsFolder: "./drizzle",
-    });
+    await runEmbeddedMigrations(db);
     logger.info("Database migrations completed successfully");
 } catch (error) {
     logger.warn("Database migration failed, this might be expected:", error);
