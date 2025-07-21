@@ -88,6 +88,44 @@ machinesHono.post("/:app_name/machines", async (c) => {
             env: machineRequest.config.env ? Object.entries(machineRequest.config.env).map(([k, v]) => `${k}=${v}`) : [],
         });
 
+        // Parse image reference to extract registry, repository, and tag
+        const parseImageRef = (image: string) => {
+            // Examples:
+            // nginx:alpine -> { registry: "", repository: "nginx", tag: "alpine" }
+            // docker.io/nginx:alpine -> { registry: "docker.io", repository: "nginx", tag: "alpine" }
+            // ghcr.io/user/repo:latest -> { registry: "ghcr.io", repository: "user/repo", tag: "latest" }
+            
+            let registry = "";
+            let repository = image;
+            let tag = "latest";
+            
+            // Check if image has a tag
+            const tagSeparator = image.lastIndexOf(":");
+            if (tagSeparator > 0) {
+                // Make sure the colon is not part of a registry hostname (like localhost:5000)
+                const afterColon = image.substring(tagSeparator + 1);
+                if (!afterColon.includes("/")) {
+                    tag = afterColon;
+                    repository = image.substring(0, tagSeparator);
+                }
+            }
+            
+            // Check if repository has a registry
+            const slashIndex = repository.indexOf("/");
+            if (slashIndex > 0) {
+                const firstPart = repository.substring(0, slashIndex);
+                // If the first part contains a dot or colon, it's likely a registry
+                if (firstPart.includes(".") || firstPart.includes(":")) {
+                    registry = firstPart;
+                    repository = repository.substring(slashIndex + 1);
+                }
+            }
+            
+            return { registry, repository, tag };
+        };
+
+        const imageRef = parseImageRef(machineRequest.config.image);
+
         // Insert machine record
         const newMachine = await db
             .insert(machines)
@@ -98,10 +136,7 @@ machinesHono.post("/:app_name/machines", async (c) => {
                 state: machineRequest.skip_launch ? "stopped" : "starting",
                 region,
                 config: JSON.stringify(machineRequest.config),
-                imageRef: JSON.stringify({
-                    repository: machineRequest.config.image,
-                    tag: "latest",
-                }),
+                imageRef: JSON.stringify(imageRef),
                 createdAt: timestamp,
                 updatedAt: timestamp,
                 containerId: container.id,
