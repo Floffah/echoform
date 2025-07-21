@@ -8,8 +8,13 @@ services:
     volumes:
       - ./localfly.db:/usr/src/app/localfly.db
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - LOG_LEVEL=info
+      - NODE_ENV=production
     develop:
       watch:
         - action: sync
-          path: .
-          target: /src
+          path: ./src
+          target: /usr/src/app/src
+        - action: rebuild
+          path: ./package.json
