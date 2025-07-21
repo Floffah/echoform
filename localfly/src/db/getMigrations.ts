@@ -26,10 +26,16 @@ export function getMigrations() {
         .map((file) => {
             const filePath = resolve(metaPath, file);
             const content = readFileSync(filePath, "utf-8");
-            return {
-                name: file,
-                content: JSON.parse(content) as DrizzleSQLiteSnapshotJSON,
-            };
+            try {
+                const parsed = JSON.parse(content) as DrizzleSQLiteSnapshotJSON;
+                return {
+                    name: file,
+                    content: parsed,
+                };
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                throw new Error(`Failed to parse meta file ${file}: ${errorMessage}`);
+            }
         });
 
     return { migrations, meta };
