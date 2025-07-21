@@ -806,6 +806,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tokens/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Current Token Information
+         * @description Get information about the current macaroon token(s), including organizations, apps, and whether each token is from a user or machine
+         */
+        get: operations["CurrentToken_show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -882,6 +902,9 @@ export interface components {
             /** @description fork from remote volume */
             source_volume_id?: string;
             unique_zone_app_wide?: boolean;
+        };
+        CurrentTokenResponse: {
+            tokens?: components["schemas"]["main.tokenInfo"][];
         };
         DecryptSecretkeyRequest: {
             associated_data?: number[];
@@ -1287,6 +1310,7 @@ export interface components {
                 [key: string]: string;
             };
             metrics?: components["schemas"]["fly.MachineMetrics"];
+            mounts?: components["schemas"]["fly.MachineMount"][];
             processes?: components["schemas"]["fly.MachineProcess"][];
             restart?: components["schemas"]["fly.MachineRestart"];
             schedule?: string;
@@ -1327,6 +1351,16 @@ export interface components {
             https?: boolean;
             path?: string;
             port?: number;
+        };
+        "fly.MachineMount": {
+            add_size_gb?: number;
+            encrypted?: boolean;
+            extend_threshold_percent?: number;
+            name?: string;
+            path?: string;
+            size_gb?: number;
+            size_gb_limit?: number;
+            volume?: string;
         };
         "fly.MachinePort": {
             end_port?: number;
@@ -1500,6 +1534,18 @@ export interface components {
         };
         /** @enum {string} */
         "main.statusCode": "unknown" | "insufficient_capacity";
+        "main.tokenInfo": {
+            apps?: string[];
+            org_slug?: string;
+            organization?: string;
+            /** @description Machine the token is restricted to (FromMachine caveat) */
+            restricted_to_machine?: string;
+            /** @description Machine making the request */
+            source_machine_id?: string;
+            token_id?: string;
+            /** @description User identifier if token is for a user */
+            user?: string;
+        };
         "placement.RegionPlacement": {
             /** @description Hint on the number of machines in this region can be created concurrently.
              *     Equal to the number of unique hosts selected for placement. */
@@ -1538,6 +1584,7 @@ export type SchemaCreateLeaseRequest = components['schemas']['CreateLeaseRequest
 export type SchemaCreateMachineRequest = components['schemas']['CreateMachineRequest'];
 export type SchemaCreateOidcTokenRequest = components['schemas']['CreateOIDCTokenRequest'];
 export type SchemaCreateVolumeRequest = components['schemas']['CreateVolumeRequest'];
+export type SchemaCurrentTokenResponse = components['schemas']['CurrentTokenResponse'];
 export type SchemaDecryptSecretkeyRequest = components['schemas']['DecryptSecretkeyRequest'];
 export type SchemaDecryptSecretkeyResponse = components['schemas']['DecryptSecretkeyResponse'];
 export type SchemaEncryptSecretkeyRequest = components['schemas']['EncryptSecretkeyRequest'];
@@ -1591,6 +1638,7 @@ export type SchemaFlyMachineGuest = components['schemas']['fly.MachineGuest'];
 export type SchemaFlyMachineHttpHeader = components['schemas']['fly.MachineHTTPHeader'];
 export type SchemaFlyMachineInit = components['schemas']['fly.MachineInit'];
 export type SchemaFlyMachineMetrics = components['schemas']['fly.MachineMetrics'];
+export type SchemaFlyMachineMount = components['schemas']['fly.MachineMount'];
 export type SchemaFlyMachinePort = components['schemas']['fly.MachinePort'];
 export type SchemaFlyMachineProcess = components['schemas']['fly.MachineProcess'];
 export type SchemaFlyMachineRestart = components['schemas']['fly.MachineRestart'];
@@ -1611,6 +1659,7 @@ export type SchemaMainGetPlacementsRequest = components['schemas']['main.getPlac
 export type SchemaMainGetPlacementsResponse = components['schemas']['main.getPlacementsResponse'];
 export type SchemaMainRegionResponse = components['schemas']['main.regionResponse'];
 export type SchemaMainStatusCode = components['schemas']['main.statusCode'];
+export type SchemaMainTokenInfo = components['schemas']['main.tokenInfo'];
 export type SchemaPlacementRegionPlacement = components['schemas']['placement.RegionPlacement'];
 export type SchemaPlacementWeights = components['schemas']['placement.Weights'];
 export type SchemaReadsGetCapacityPerRegionRow = components['schemas']['reads.GetCapacityPerRegionRow'];
@@ -3205,6 +3254,44 @@ export interface operations {
             };
             /** @description Bad Request */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    CurrentToken_show: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentTokenResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
