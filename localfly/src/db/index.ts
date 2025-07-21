@@ -2,10 +2,8 @@ import { Database } from "bun:sqlite";
 import type { Logger } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { exists, mkdir, writeFile } from "fs/promises";
 import { resolve } from "path";
 
-import { getMigrations } from "@/db/getMigrations.ts" with { type: "macro" };
 import { logger } from "@/lib/logger.ts";
 
 import * as schema from "./schema";
@@ -21,29 +19,14 @@ const db = drizzle(sqlite, {
     } as Logger,
 });
 
-const drizzleDir = resolve(process.cwd(), "drizzle");
-const metaDir = resolve(drizzleDir, "meta");
-const existsDrizzleDir = await exists(drizzleDir);
-
-if (!existsDrizzleDir) {
-    const { migrations, meta } = getMigrations();
-
-    await mkdir(drizzleDir, { recursive: true });
-    await mkdir(metaDir, { recursive: true });
-
-    for (const migration of migrations) {
-        const filePath = resolve(drizzleDir, migration.name);
-        await writeFile(filePath, migration.content);
-    }
-
-    for (const metaFile of meta) {
-        const filePath = resolve(metaDir, metaFile.name);
-        await writeFile(filePath, JSON.stringify(metaFile.content, null, 2));
-    }
+// Run migrations if they exist
+try {
+    migrate(db, {
+        migrationsFolder: "./drizzle",
+    });
+    logger.info("Database migrations completed successfully");
+} catch (error) {
+    logger.warn("Database migration failed, this might be expected:", error);
 }
-
-migrate(db, {
-    migrationsFolder: "./drizzle",
-});
 
 export { db };

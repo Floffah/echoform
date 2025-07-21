@@ -6,8 +6,9 @@
     "scripts": {
         "build:dev": "bun build --target=bun --outdir=dist src/index.ts",
         "build": "bun run build  --production --bytecode",
-        "compile": "bun build --target=bun --compile --outfile=dist/localfly --production ./src/index.ts",
-        "dev": "bun run --watch --no-clear-screen .",
+        "compile": "bun build --target=bun --compile --outfile=dist/localfly --production ./src/server.ts",
+        "dev": "bun run --watch --no-clear-screen src/server.ts",
+        "start": "bun run src/server.ts",
         "format": "prettier --write \"**/*.{ts,tsx}\"",
         "lint": "eslint src/**/*.ts --ignore-pattern src/**/*.test.ts",
         "test": "bun test",

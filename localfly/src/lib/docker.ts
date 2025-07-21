@@ -90,7 +90,7 @@ export class DockerService {
 
     async listContainers(filters?: { label?: string[] }): Promise<Dockerode.ContainerInfo[]> {
         try {
-            const options: Dockerode.ListContainersOptions = { all: true };
+            const options: Dockerode.ContainerListOptions = { all: true };
             if (filters?.label) {
                 options.filters = { label: filters.label };
             }

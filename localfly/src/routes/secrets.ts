@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { createHash } from "crypto";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { apps, secrets } from "@/db/schema";
+import { secrets } from "@/db/schema";
 import { logger } from "@/lib/logger.ts";
 
 import type {
-    paths,
     components,
 } from "../../types/apis/machines.dev";
 
@@ -39,9 +39,9 @@ secretsHono.get("/:app_name/secrets", async (c) => {
     return c.json(secretsResponse);
 });
 
-// Set a secret
-secretsHono.post("/:app_name/secrets", async (c) => {
-    const { app_name } = c.req.param();
+// Set a secret (POST to /secrets/{secret_name})
+secretsHono.post("/:app_name/secrets/:secret_name", async (c) => {
+    const { app_name, secret_name } = c.req.param();
     const secretRequest = await c.req.json() as components["schemas"]["SetAppSecretRequest"];
 
     const app = await db.query.apps.findFirst({
@@ -52,8 +52,8 @@ secretsHono.post("/:app_name/secrets", async (c) => {
         return c.json({ error: "App not found" }, 404);
     }
 
-    if (!secretRequest.key || !secretRequest.value) {
-        return c.json({ error: "Secret key and value are required" }, 400);
+    if (!secretRequest.value) {
+        return c.json({ error: "Secret value is required" }, 400);
     }
 
     const timestamp = new Date().toISOString();
@@ -64,7 +64,7 @@ secretsHono.post("/:app_name/secrets", async (c) => {
         const existingSecret = await db.query.secrets.findFirst({
             where: (secrets, { eq, and }) => and(
                 eq(secrets.appId, app.id),
-                eq(secrets.name, secretRequest.key)
+                eq(secrets.name, secret_name)
             ),
         });
 
@@ -76,14 +76,14 @@ secretsHono.post("/:app_name/secrets", async (c) => {
                     digest,
                     updatedAt: timestamp,
                 })
-                .where((table, { eq }) => eq(table.id, existingSecret.id));
+                .where(eq(secrets.id, existingSecret.id));
         } else {
             // Create new secret
             await db
                 .insert(secrets)
                 .values({
                     appId: app.id,
-                    name: secretRequest.key,
+                    name: secret_name,
                     digest,
                     createdAt: timestamp,
                     updatedAt: timestamp,
@@ -94,11 +94,12 @@ secretsHono.post("/:app_name/secrets", async (c) => {
             success: true,
         };
 
-        logger.info(`Set secret ${secretRequest.key} for app ${app_name}`);
+        logger.info(`Set secret ${secret_name} for app ${app_name}`);
         return c.json(response);
     } catch (error) {
-        logger.error(`Failed to set secret: ${error}`);
-        return c.json({ error: "Failed to set secret", details: String(error) }, 500);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to set secret: ${errorMessage}`);
+        return c.json({ error: "Failed to set secret", details: errorMessage }, 500);
     }
 });
 
@@ -157,12 +158,13 @@ secretsHono.delete("/:app_name/secrets/:secret_name", async (c) => {
     }
 
     try {
-        await db.delete(secrets).where((table, { eq }) => eq(table.id, secret.id));
+        await db.delete(secrets).where(eq(secrets.id, secret.id));
 
         logger.info(`Deleted secret ${secret_name} for app ${app_name}`);
         return c.body(null, 204);
     } catch (error) {
-        logger.error(`Failed to delete secret: ${error}`);
-        return c.json({ error: "Failed to delete secret", details: String(error) }, 500);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to delete secret: ${errorMessage}`);
+        return c.json({ error: "Failed to delete secret", details: errorMessage }, 500);
     }
 });

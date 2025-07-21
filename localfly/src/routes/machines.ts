@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { randomUUID } from "crypto";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { apps, machines, events } from "@/db/schema";
+import { machines, events } from "@/db/schema";
 import { dockerService } from "@/lib/docker.ts";
 import { logger } from "@/lib/logger.ts";
 
 import type {
-    paths,
     components,
 } from "../../types/apis/machines.dev";
 
@@ -16,7 +16,6 @@ export const machinesHono = new Hono();
 // List machines for an app
 machinesHono.get("/:app_name/machines", async (c) => {
     const { app_name } = c.req.param();
-    const { include_deleted } = c.req.query() as paths["/apps/{app_name}/machines"]["get"]["parameters"]["query"];
 
     const app = await db.query.apps.findFirst({
         where: (apps, { eq }) => eq(apps.name, app_name),
@@ -26,29 +25,13 @@ machinesHono.get("/:app_name/machines", async (c) => {
         return c.json({ error: "App not found" }, 404);
     }
 
-    let whereClause = (machines: any, { eq }: any) => eq(machines.appId, app.id);
-    
-    if (!include_deleted) {
-        whereClause = (machines: any, { eq, ne }: any) => 
-            eq(machines.appId, app.id);
-    }
-
     const machinesList = await db.query.machines.findMany({
-        where: whereClause,
+        where: (machines, { eq }) => eq(machines.appId, app.id),
         orderBy: (machines, { asc }) => asc(machines.createdAt),
     });
 
     const machinesResponse = await Promise.all(
         machinesList.map(async (machine) => {
-            let containerInfo = null;
-            if (machine.containerId) {
-                try {
-                    containerInfo = await dockerService.getContainerInfo(machine.containerId);
-                } catch (error) {
-                    logger.warn(`Failed to get container info for ${machine.containerId}: ${error}`);
-                }
-            }
-
             return {
                 id: machine.id,
                 name: machine.name,
@@ -146,7 +129,7 @@ machinesHono.post("/:app_name/machines", async (c) => {
                     state: "started",
                     updatedAt: new Date().toISOString(),
                 })
-                .where((table, { eq }) => eq(table.id, machineId));
+                .where(eq(machines.id, machineId));
 
             // Log start event
             await db.insert(events).values({
@@ -160,22 +143,23 @@ machinesHono.post("/:app_name/machines", async (c) => {
 
         const machineResponse = {
             id: machineId,
-            name: newMachine[0].name,
-            state: newMachine[0].state,
-            region: newMachine[0].region,
+            name: newMachine[0]?.name || containerName,
+            state: newMachine[0]?.state || "stopped",
+            region: newMachine[0]?.region || region,
             instance_id: machineId,
             private_ip: "127.0.0.1", // Local development
-            config: JSON.parse(newMachine[0].config!),
-            image_ref: JSON.parse(newMachine[0].imageRef!),
-            created_at: newMachine[0].createdAt,
-            updated_at: newMachine[0].updatedAt,
+            config: JSON.parse(newMachine[0]?.config || "{}"),
+            image_ref: JSON.parse(newMachine[0]?.imageRef || "{}"),
+            created_at: newMachine[0]?.createdAt || timestamp,
+            updated_at: newMachine[0]?.updatedAt || timestamp,
             events: [],
             checks: [],
         };
 
         return c.json(machineResponse, 201);
     } catch (error) {
-        logger.error(`Failed to create machine: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to create machine: ${errorMessage}`);
         
         // Log error event
         await db.insert(events).values({
@@ -183,11 +167,11 @@ machinesHono.post("/:app_name/machines", async (c) => {
             type: "create",
             status: "error",
             timestamp: new Date().toISOString(),
-            request: JSON.stringify({ error: String(error) }),
+            request: JSON.stringify({ error: errorMessage }),
             source: "api",
         });
 
-        return c.json({ error: "Failed to create machine", details: String(error) }, 500);
+        return c.json({ error: "Failed to create machine", details: errorMessage }, 500);
     }
 });
 
@@ -214,15 +198,6 @@ machinesHono.get("/:app_name/machines/:machine_id", async (c) => {
         return c.json({ error: "Machine not found" }, 404);
     }
 
-    let containerInfo = null;
-    if (machine.containerId) {
-        try {
-            containerInfo = await dockerService.getContainerInfo(machine.containerId);
-        } catch (error) {
-            logger.warn(`Failed to get container info for ${machine.containerId}: ${error}`);
-        }
-    }
-
     const machineResponse = {
         id: machine.id,
         name: machine.name,
@@ -245,7 +220,6 @@ machinesHono.get("/:app_name/machines/:machine_id", async (c) => {
 // Delete machine
 machinesHono.delete("/:app_name/machines/:machine_id", async (c) => {
     const { app_name, machine_id } = c.req.param();
-    const { force } = c.req.query() as { force?: string };
 
     const app = await db.query.apps.findFirst({
         where: (apps, { eq }) => eq(apps.name, app_name),
@@ -271,14 +245,15 @@ machinesHono.delete("/:app_name/machines/:machine_id", async (c) => {
         if (machine.containerId) {
             try {
                 await dockerService.stopContainer(machine.containerId);
-                await dockerService.removeContainer(machine.containerId, force === "true");
+                await dockerService.removeContainer(machine.containerId, true);
             } catch (error) {
-                logger.warn(`Failed to clean up container ${machine.containerId}: ${error}`);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                logger.warn(`Failed to clean up container ${machine.containerId}: ${errorMessage}`);
             }
         }
 
         // Delete machine record
-        await db.delete(machines).where((table, { eq }) => eq(table.id, machine_id));
+        await db.delete(machines).where(eq(machines.id, machine_id));
 
         // Log event
         await db.insert(events).values({
@@ -291,7 +266,8 @@ machinesHono.delete("/:app_name/machines/:machine_id", async (c) => {
 
         return c.body(null, 204);
     } catch (error) {
-        logger.error(`Failed to delete machine: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to delete machine: ${errorMessage}`);
         
         // Log error event
         await db.insert(events).values({
@@ -299,143 +275,11 @@ machinesHono.delete("/:app_name/machines/:machine_id", async (c) => {
             type: "destroy",
             status: "error",
             timestamp: new Date().toISOString(),
-            request: JSON.stringify({ error: String(error) }),
+            request: JSON.stringify({ error: errorMessage }),
             source: "api",
         });
 
-        return c.json({ error: "Failed to delete machine", details: String(error) }, 500);
-    }
-});
-
-// Start machine
-machinesHono.post("/:app_name/machines/:machine_id/start", async (c) => {
-    const { app_name, machine_id } = c.req.param();
-
-    const app = await db.query.apps.findFirst({
-        where: (apps, { eq }) => eq(apps.name, app_name),
-    });
-
-    if (!app) {
-        return c.json({ error: "App not found" }, 404);
-    }
-
-    const machine = await db.query.machines.findFirst({
-        where: (machines, { eq, and }) => and(
-            eq(machines.id, machine_id),
-            eq(machines.appId, app.id)
-        ),
-    });
-
-    if (!machine) {
-        return c.json({ error: "Machine not found" }, 404);
-    }
-
-    if (!machine.containerId) {
-        return c.json({ error: "Machine has no associated container" }, 400);
-    }
-
-    try {
-        await dockerService.startContainer(machine.containerId);
-        
-        // Update machine state
-        await db
-            .update(machines)
-            .set({ 
-                state: "started",
-                updatedAt: new Date().toISOString(),
-            })
-            .where((table, { eq }) => eq(table.id, machine_id));
-
-        // Log event
-        await db.insert(events).values({
-            machineId: machine_id,
-            type: "start",
-            status: "success",
-            timestamp: new Date().toISOString(),
-            source: "api",
-        });
-
-        return c.body(null, 204);
-    } catch (error) {
-        logger.error(`Failed to start machine: ${error}`);
-        
-        // Log error event
-        await db.insert(events).values({
-            machineId: machine_id,
-            type: "start",
-            status: "error",
-            timestamp: new Date().toISOString(),
-            request: JSON.stringify({ error: String(error) }),
-            source: "api",
-        });
-
-        return c.json({ error: "Failed to start machine", details: String(error) }, 500);
-    }
-});
-
-// Stop machine
-machinesHono.post("/:app_name/machines/:machine_id/stop", async (c) => {
-    const { app_name, machine_id } = c.req.param();
-
-    const app = await db.query.apps.findFirst({
-        where: (apps, { eq }) => eq(apps.name, app_name),
-    });
-
-    if (!app) {
-        return c.json({ error: "App not found" }, 404);
-    }
-
-    const machine = await db.query.machines.findFirst({
-        where: (machines, { eq, and }) => and(
-            eq(machines.id, machine_id),
-            eq(machines.appId, app.id)
-        ),
-    });
-
-    if (!machine) {
-        return c.json({ error: "Machine not found" }, 404);
-    }
-
-    if (!machine.containerId) {
-        return c.json({ error: "Machine has no associated container" }, 400);
-    }
-
-    try {
-        await dockerService.stopContainer(machine.containerId);
-        
-        // Update machine state
-        await db
-            .update(machines)
-            .set({ 
-                state: "stopped",
-                updatedAt: new Date().toISOString(),
-            })
-            .where((table, { eq }) => eq(table.id, machine_id));
-
-        // Log event
-        await db.insert(events).values({
-            machineId: machine_id,
-            type: "stop",
-            status: "success",
-            timestamp: new Date().toISOString(),
-            source: "api",
-        });
-
-        return c.body(null, 204);
-    } catch (error) {
-        logger.error(`Failed to stop machine: ${error}`);
-        
-        // Log error event
-        await db.insert(events).values({
-            machineId: machine_id,
-            type: "stop",
-            status: "error",
-            timestamp: new Date().toISOString(),
-            request: JSON.stringify({ error: String(error) }),
-            source: "api",
-        });
-
-        return c.json({ error: "Failed to stop machine", details: String(error) }, 500);
+        return c.json({ error: "Failed to delete machine", details: errorMessage }, 500);
     }
 });
 
