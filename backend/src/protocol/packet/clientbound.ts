@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { EnforcedStateName } from "@/enums/EnforcedStateName.ts";
 import { ErrorCode, WarningCode } from "@/enums/ErrorCode.ts";
+import { KickReason } from "@/enums/KickReason.ts";
 import { SceneName } from "@/enums/SceneName.ts";
 import { zodNanoid } from "@/lib/zodValidators.ts";
 import { basePacketSchema } from "@/protocol/packet/base.ts";
@@ -31,6 +32,13 @@ export const warningPacketSchema = basePacketSchema.extend({
         message: z.string(),
         code: z.union([z.string(), z.nativeEnum(WarningCode)]),
         cause: z.any().optional(),
+    }),
+});
+
+export const kickPacketSchema = basePacketSchema.extend({
+    id: z.literal("kick"),
+    data: z.object({
+        reason: z.nativeEnum(KickReason),
     }),
 });
 
@@ -72,6 +80,7 @@ export const clientboundPacket = z.union([
     keepalivePacketSchema,
     errorPacketSchema,
     warningPacketSchema,
+    kickPacketSchema,
     acknowledgePacketSchema,
     welcomePacketSchema,
     forceScenePacketSchema,

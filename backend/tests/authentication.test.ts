@@ -5,18 +5,15 @@ import { nanoid } from "nanoid";
 import z from "zod";
 
 import { db } from "@/db";
-import { ErrorCode } from "@/enums/ErrorCode.ts";
-import { app, v1UserAuth202Response } from "@/index.ts";
-import {
-    type PubsubMessages,
-    onPubsubMessage,
-    pubsubChannel,
-    subscriberRedis,
-} from "@/lib/pubsub.ts";
+import { ErrorCode, WarningCode } from "@/enums/ErrorCode.ts";
+import { app } from "@/index.ts";
+import { v1UserAuth202Response } from "@/endpoints/v1/user.ts";
+import { type PubsubMessages, onPubsubMessage } from "@/lib/pubsub.ts";
 import { GameClientConnection } from "@/protocol/GameClientConnection.ts";
+import { KickReason } from "@/enums/KickReason.ts";
 
 describe("HTTP Authentication", () => {
-    test("User can register", async () => {
+    test.concurrent("User can register", async () => {
         const username = getTestableUsername();
 
         const response = await app.request("/v1/user/register", {
@@ -36,7 +33,7 @@ describe("HTTP Authentication", () => {
         expect(user).toBeDefined();
     });
 
-    test("User can authenticate", async () => {
+    test.concurrent("User can authenticate", async () => {
         const username = getTestableUsername();
 
         await app.request("/v1/user/register", {
@@ -90,14 +87,22 @@ describe("WebSocket Authentication", () => {
         userId = user!.id;
     });
 
-    test("Socket terminates if client does not authenticate", async () => {
+    test.concurrent("Socket terminates if client does not authenticate", async () => {
         const conn = new WebsocketTester(new GameClientConnection(nanoid()));
         await conn.open();
 
-        // Wait for the connection to close
-        await new Promise<void>((resolve) => {
-            conn.on("closed", () => resolve());
-        });
+        await conn.waitForClose();
+
+        // Expect acknowledge first
+        expect(conn.outboundPackets[0]?.id).toBe("acknowledge");
+        // Expect missing access token warning
+        const warningPacket = conn.outboundPackets.find(
+            (p) => p.id === "warning",
+        );
+        expect(warningPacket).toBeDefined();
+        expect(warningPacket?.data.code).toEqual(
+            WarningCode.MISSING_ACCESS_TOKEN,
+        );
 
         const errorPacket = conn.outboundPackets.find(
             (packet) => packet.id === "error",
@@ -110,7 +115,7 @@ describe("WebSocket Authentication", () => {
         expect(errorPacket?.data.fatal).toBeTruthy();
     });
 
-    test("Rest sign in request works", async () => {
+    test.concurrent("Rest sign in request works", async () => {
         const authResponse = await app.request("/v1/user/auth", {
             method: "POST",
             body: JSON.stringify({
@@ -130,7 +135,7 @@ describe("WebSocket Authentication", () => {
         expect(data.refreshToken).toBeDefined();
     });
 
-    test("All other sessions are invalidated on rest sign in", async () => {
+    test.concurrent("All other sessions are invalidated on rest sign in", async () => {
         const authResponse = await app.request("/v1/user/auth", {
             method: "POST",
             body: JSON.stringify({
@@ -195,5 +200,57 @@ describe("WebSocket Authentication", () => {
         expect(messages[0]!.sessionId).toEqual(firstSession!.id);
 
         await closeListener();
+    });
+
+    test.concurrent("Active websocket is kicked when session is invalidated", async () => {
+        // Use a unique user to avoid interference with concurrent tests
+        const localUser = getTestableUsername();
+        const localPass = "testpassword";
+
+        const reg = await app.request("/v1/user/register", {
+            method: "POST",
+            body: JSON.stringify({ username: localUser, password: localPass }),
+            headers: new Headers({ "Content-Type": "application/json" }),
+        });
+        expect([201, 409]).toContain(reg.status);
+
+        const auth1 = await app.request("/v1/user/auth", {
+            method: "POST",
+            body: JSON.stringify({ username: localUser, password: localPass }),
+            headers: new Headers({ "Content-Type": "application/json" }),
+        });
+        expect(auth1.status).toBe(200);
+        const t1 = (await auth1.json()) as z.infer<typeof v1UserAuth202Response>;
+
+        // Open WS with the first token
+        const headers = new Headers({ Authorization: `Bearer ${t1.accessToken}` });
+        const wsConn = new WebsocketTester(new GameClientConnection(nanoid(), headers));
+        await wsConn.open();
+
+        // Should have acknowledge and welcome
+        expect(wsConn.outboundPackets.find((p) => p.id === "acknowledge")).toBeDefined();
+        expect(wsConn.outboundPackets.find((p) => p.id === "welcome")).toBeDefined();
+
+        let closedCode: number | undefined;
+        wsConn.on("closed", (code) => {
+            closedCode = code;
+        });
+
+        // Trigger second auth which invalidates the first session
+        const auth2 = await app.request("/v1/user/auth", {
+            method: "POST",
+            body: JSON.stringify({ username: localUser, password: localPass }),
+            headers: new Headers({ "Content-Type": "application/json" }),
+        });
+        expect(auth2.status).toBe(200);
+
+        // Wait for the server to kick and close the connection
+        await wsConn.waitForClose();
+
+        const kick = wsConn.outboundPackets.find((p) => p.id === "kick");
+        expect(kick).toBeDefined();
+
+        expect(kick!.data.reason).toBe(KickReason.SESSION_INVALIDATED);
+        expect(closedCode).toBe(4001);
     });
 });

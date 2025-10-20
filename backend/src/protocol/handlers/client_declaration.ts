@@ -45,6 +45,9 @@ export const clientDeclaration = defineHandler(
         conn.user = user!;
         conn.session = session;
 
+        // Ensure we're subscribed to invalidation for this user/session
+        await conn.ensureAuthInvalidationSubscription(ws, user!.id, session.id);
+
         conn.send(ws, {
             id: "welcome",
             data: {

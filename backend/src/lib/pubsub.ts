@@ -1,7 +1,8 @@
 import { redis } from "bun";
-import Redis from "iovalkey";
 
 type Environment = "development" | "production" | "test";
+
+export const redisSubscriber = await redis.duplicate();
 
 export interface PubsubKeyFormats {
     noop: "noop";
@@ -29,17 +30,15 @@ export function pubsubChannel<Key extends keyof PubsubChannelFormats>(
     return `${(process.env.NODE_ENV as Environment) ?? "development"}:${namespace}:${value}`;
 }
 
-export const subscriberRedis = new Redis(process.env.VALKEY_URL!);
-
 export function emitPubsubMessage<Key extends keyof PubsubMessages>(
     channel: Key,
     channelValue: PubsubChannelFormats[Key],
     message: PubsubMessages[Key],
 ) {
-    return redis.send("PUBLISH", [
+    return redis.publish(
         pubsubChannel(channel, channelValue),
         JSON.stringify(message),
-    ]);
+    );
 }
 
 export async function onPubsubMessage<Key extends keyof PubsubMessages>(
@@ -48,19 +47,17 @@ export async function onPubsubMessage<Key extends keyof PubsubMessages>(
     callback: (message: PubsubMessages[Key]) => void,
 ): Promise<() => Promise<void>> {
     const channelName = pubsubChannel(channel, channelValue);
-    await subscriberRedis.subscribe(channelName);
 
-    const onMessage = (channel: string, message: string) => {
+    const onMessage = (message: string, channel: string) => {
         if (channel === channelName) {
             callback(JSON.parse(message) as PubsubMessages[Key]);
         }
     };
 
-    subscriberRedis.addListener("message", onMessage);
+    await redisSubscriber.subscribe(channelName, onMessage);
 
     return async () => {
-        subscriberRedis.removeListener("message", onMessage);
-        await subscriberRedis.unsubscribe(channelName);
+        await redisSubscriber.unsubscribe(channelName, onMessage);
     };
 }
 

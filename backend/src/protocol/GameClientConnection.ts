@@ -1,10 +1,12 @@
 import type { WSContext, WSMessageReceive } from "hono/ws";
 
 import { AUTH_TIMEOUT } from "@/constants/timeouts.ts";
-import type { User, UserSession } from "@/db";
+import { type User, type UserSession, db } from "@/db";
 import type { EnforcedStateName } from "@/enums/EnforcedStateName.ts";
 import { ErrorCode, WarningCode } from "@/enums/ErrorCode.ts";
+import { KickReason } from "@/enums/KickReason.ts";
 import { logger } from "@/lib/logger.ts";
+import { onPubsubMessage } from "@/lib/pubsub.ts";
 import { GameClientConnectionState } from "@/protocol/GameClientConnectionState.ts";
 import { handlers } from "@/protocol/handlers";
 import type { ClientboundPacket } from "@/protocol/packet/clientbound.ts";
@@ -19,6 +21,7 @@ export class GameClientConnection implements AwaitedWSEvents {
     user?: User | null = null;
 
     _authTimeout: NodeJS.Timeout | null = null;
+    _unsubscribeAuthInvalidation: (() => Promise<void>) | null = null;
 
     cachedEnforcedState: Partial<Record<EnforcedStateName, boolean>> = {};
 
@@ -51,6 +54,16 @@ export class GameClientConnection implements AwaitedWSEvents {
 
         this.state = GameClientConnectionState.LOGIN;
 
+        const sendNoAuthWarning = () =>
+            this.send(ws, {
+                id: "warning",
+                data: {
+                    message: "Missing access token. Please authenticate.",
+                    code: WarningCode.MISSING_ACCESS_TOKEN,
+                    fatal: false,
+                },
+            });
+
         if (this.headers.has("authorization")) {
             const authHeader = this.headers.get("authorization")!;
             const accessToken = authHeader.startsWith("Bearer ")
@@ -58,14 +71,7 @@ export class GameClientConnection implements AwaitedWSEvents {
                 : authHeader;
 
             if (!accessToken) {
-                this.send(ws, {
-                    id: "warning",
-                    data: {
-                        message: "Missing access token. Please authenticate.",
-                        code: WarningCode.MISSING_ACCESS_TOKEN,
-                        fatal: false,
-                    },
-                });
+                sendNoAuthWarning();
             } else {
                 // Handle authentication immediately if access token is provided
                 const clientDeclarationHandler = handlers["client_declaration"];
@@ -77,6 +83,8 @@ export class GameClientConnection implements AwaitedWSEvents {
                     );
                 }
             }
+        } else {
+            sendNoAuthWarning();
         }
 
         if (this.state === GameClientConnectionState.LOGIN) {
@@ -125,7 +133,7 @@ export class GameClientConnection implements AwaitedWSEvents {
             );
 
             if (messageParseResult.error) {
-                const errorMessage = messageParseResult.error.errors
+                const errorMessage = messageParseResult.error.issues
                     .map(
                         (error) =>
                             error.message + " at " + error.path.join("."),
@@ -150,8 +158,8 @@ export class GameClientConnection implements AwaitedWSEvents {
                         await handler.handler(message, this, ws);
                     } catch (error) {
                         logger.error(
-                            `Error handling message ${message.id} on connection ${this.connectionId}:`,
                             error,
+                            `Error handling message ${message.id} on connection ${this.connectionId}:`,
                         );
                         this.send(ws, {
                             id: "error",
@@ -218,6 +226,34 @@ export class GameClientConnection implements AwaitedWSEvents {
         });
     }
 
+    async ensureAuthInvalidationSubscription(
+        ws: WSContext,
+        userId?: number,
+        sessionId?: number,
+    ) {
+        if (this._unsubscribeAuthInvalidation) return;
+
+        const effectiveUserId = userId ?? this.user?.id;
+        const effectiveSessionId = sessionId ?? this.session?.id;
+        if (!effectiveUserId || !effectiveSessionId) return;
+
+        this._unsubscribeAuthInvalidation = await onPubsubMessage(
+            "user_auth_invalidated",
+            effectiveUserId,
+            (message) => {
+                if (message.sessionId === effectiveSessionId) {
+                    this.send(ws, {
+                        id: "kick",
+                        data: {
+                            reason: KickReason.SESSION_INVALIDATED,
+                        },
+                    });
+                    ws.close(4001, "Session invalidated");
+                }
+            },
+        );
+    }
+
     private async _cleanup(closeIntended = false) {
         // if (this._keepaliveInterval) {
         //     clearInterval(this._keepaliveInterval);
@@ -236,6 +272,14 @@ export class GameClientConnection implements AwaitedWSEvents {
         if (this._authTimeout) {
             clearTimeout(this._authTimeout);
             this._authTimeout = null;
+        }
+
+        if (this._unsubscribeAuthInvalidation) {
+            try {
+                await this._unsubscribeAuthInvalidation();
+            } finally {
+                this._unsubscribeAuthInvalidation = null;
+            }
         }
     }
 }
