@@ -1,30 +1,20 @@
-import { hash, verify } from "@node-rs/bcrypt";
 import { Scalar } from "@scalar/hono-api-reference";
-import { redis } from "bun";
-import { addDays } from "date-fns";
-import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { describeRoute, openAPISpecs } from "hono-openapi";
-import { resolver, validator } from "hono-openapi/zod";
-import { createBunWebSocket } from "hono/bun";
+import { openAPIRouteHandler } from "hono-openapi";
+import { upgradeWebSocket, websocket } from "hono/bun";
 import { nanoid } from "nanoid";
-import z from "zod";
 
-import { db, userSessions, users } from "@/db";
-import { TOKEN_LENGTH } from "@/lib/constants.ts";
+import v1 from "@/endpoints/v1";
 import { logger } from "@/lib/logger.ts";
-import {
-    type PubsubMessages,
-    emitPubsubMessage,
-    pubsubChannel,
-} from "@/lib/pubsub.ts";
 import { GameClientConnection } from "@/protocol/GameClientConnection.ts";
+
+if (process.env.NODE_ENV === "development") {
+    await import("../scripts/asyncapi");
+}
 
 logger.debug("Starting server...");
 
 export const app = new Hono();
-
-const { upgradeWebSocket, websocket } = createBunWebSocket();
 
 app.get("/healthz", (c) => c.json({ status: "ok" }));
 
@@ -40,144 +30,7 @@ app.get(
     }),
 );
 
-app.post(
-    "/v1/user/register",
-    describeRoute({
-        operationId: "registerUser",
-        summary: "Register a new user",
-        tags: ["v1"],
-        responses: {
-            201: {
-                description: "User registered successfully",
-            },
-            409: {
-                description: "Data conflict",
-                content: {
-                    "application/json": {
-                        schema: resolver(
-                            z.object({
-                                error: z.string().describe("Error message"),
-                            }),
-                        ),
-                    },
-                },
-            },
-        },
-    }),
-    validator(
-        "json",
-        z.object({
-            username: z.string().min(1).max(20),
-            password: z.string().min(8).max(64),
-        }),
-    ),
-    async (c) => {
-        const body = c.req.valid("json");
-
-        const result = await db
-            .insert(users)
-            .values({
-                name: body.username,
-                passwordHash: await hash(body.password),
-            })
-            .onConflictDoNothing({ target: users.name });
-
-        if (result.rowCount === 0) {
-            return c.json({ error: "Username already exists" }, 409);
-        }
-
-        return c.body(null, 201);
-    },
-);
-
-export const v1UserAuth202Response = z.object({
-    accessToken: z.string().describe("Access token for the user"),
-    refreshToken: z.string().describe("Refresh token for the user"),
-});
-
-app.post(
-    "/v1/user/auth",
-    describeRoute({
-        operationId: "authenticateUser",
-        summary: "Authenticate a user",
-        tags: ["v1"],
-        responses: {
-            200: {
-                description: "User authenticated successfully",
-                content: {
-                    "application/json": {
-                        schema: resolver(v1UserAuth202Response),
-                    },
-                },
-            },
-            401: {
-                description: "Unauthorized",
-            },
-        },
-    }),
-    validator(
-        "json",
-        z.object({
-            username: z.string().min(1).max(20),
-            password: z.string().min(8).max(64),
-        }),
-    ),
-    async (c) => {
-        const body = c.req.valid("json");
-
-        const user = await db.query.users.findFirst({
-            where: (users, { eq }) => eq(users.name, body.username),
-        });
-
-        if (!user) {
-            return c.json({ message: "Invalid username or password" }, 401);
-        }
-
-        const isPasswordValid = await verify(body.password, user.passwordHash);
-        if (!isPasswordValid) {
-            return c.json({ message: "Invalid username or password" }, 401);
-        }
-
-        const accessToken = nanoid(TOKEN_LENGTH);
-        const refreshToken = nanoid(TOKEN_LENGTH);
-
-        const expiresAt = addDays(new Date(), 30);
-        const refreshTokenExpiresAt = addDays(new Date(), 90);
-
-        const existingSessions = await db.query.userSessions.findMany({
-            where: (userSessions, { eq }) => eq(userSessions.userId, user.id),
-        });
-
-        for (const session of existingSessions) {
-            await emitPubsubMessage("user_auth_invalidated", user.id, {
-                sessionId: session.id,
-            });
-        }
-
-        await db.delete(userSessions).where(eq(userSessions.userId, user.id));
-
-        await db
-            .insert(userSessions)
-            .values({
-                userId: user.id,
-                accessToken,
-                refreshToken,
-                expiresAt,
-                refreshTokenExpiresAt,
-            })
-            .onConflictDoUpdate({
-                target: userSessions.accessToken,
-                set: {
-                    refreshToken,
-                },
-            });
-
-        return c.json({
-            accessToken,
-            refreshToken,
-        });
-    },
-);
+app.route("/v1", v1);
 
 const openapiServers = [
     {
@@ -197,38 +50,12 @@ app.get(
     "/openapi.json",
     async (c, next) => {
         if (process.env.NODE_ENV === "production") {
-            const bearerAuth = c.req.header("Authorization");
-
-            if (!bearerAuth) {
-                return c.json({ error: "Missing authorization header" }, 401);
-            }
-
-            const [scheme, token] = bearerAuth.split(" ");
-
-            if (scheme?.toLowerCase() !== "bearer") {
-                return c.json({ error: "Invalid authorization scheme" }, 401);
-            }
-
-            if (!token) {
-                return c.json({ error: "Missing token" }, 401);
-            }
-
-            const userSession = await db.query.userSessions.findFirst({
-                where: (userSessions, { eq, and, gt }) =>
-                    and(
-                        eq(userSessions.accessToken, token),
-                        gt(userSessions.expiresAt, new Date()),
-                    ),
-            });
-
-            if (!userSession) {
-                return c.json({ error: "Invalid or expired token" }, 401);
-            }
+            return c.text("Unauthorized", 401);
         }
 
         return next();
     },
-    openAPISpecs(app, {
+    openAPIRouteHandler(app, {
         documentation: {
             info: {
                 title: "Echoform Authoritative Server",

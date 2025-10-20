@@ -1,91 +1,226 @@
+# AUTO GENERATED - DO NOT EDIT
+
 asyncapi: 3.0.0
-info:
+info: 
   title: Echoform Authoritative Server
-  version: '0.0.1'
-  description: |
-    This is the authoritative server for Echoform, a cozy MMORPG game.
-servers:
-  production:
+  version: 0.0.1
+  description: "This is the authoritative server for Echoform, a cozy MMORPG game."
+servers: 
+  production: 
     host: echoform.floffah.dev
+    pathname: /client
     protocol: wss
-channels:
-  client:
-    servers:
-      - $ref: '#/servers/production'
+channels: 
+  client: 
+    servers: 
+      - $ref: "#/servers/production"
     address: /client
-    messages:
-      acknowledge:
-        $ref: '#/components/messages/acknowledge'
-      welcome:
-        $ref: '#/components/messages/welcome'
-    bindings:
-      ws:
-        headers:
+    summary: WebSocket connection for game clients
+    bindings: 
+      ws: 
+        headers: 
           type: object
-          properties:
-            Device:
+          properties: 
+            Device: 
               type: string
-              description: The device type of the client
-operations:
-  connect:
-    action: receive
-    channel:
-      $ref: '#/channels/client'
-    messages:
-      - $ref: '#/channels/client/messages/acknowledge'
-      - $ref: '#/channels/client/messages/welcome'
-components:
-  messages:
-    acknowledge:
-      summary: Message sent by the server to acknowledge the connection.
-      payload:
-        type: object
-        additionalProperties: false
-        properties:
-          id:
-            type: string
-            const: acknowledge
-          data:
-            type: object
-            additionalProperties: false
-            properties:
-              connectionId:
-                type: string
-                description: The connection ID of the client.
-                format: nanoid
-    welcome:
-      summary: Message sent by the server to welcome the client.
-      payload:
-        type: object
-        additionalProperties: false
-        properties:
-          id:
-            type: string
-            const: welcome
-          data:
-            type: object
-            additionalProperties: false
-            properties:
-              serverVersion:
-                type: string
-                description: The version of the server.
-                format: semver
-              environment:
-                type: string
-                description: The environment the server is running in (e.g., production, staging).
-                enum:
-                  - test
-                  - development
-                  - production
-              featureFlags:
-                type: array
-                description: Feature flags for the client to enable/disable features.
-                items:
-                  type: string
-                  enum:
-                    - enableExperimentalFeatures
-                    - enableDebugMode
-              reconnectionToken:
-                type: string
-                description: A token used for reconnection attempts.
-                format: nanoid
+              description: Client device information
+    messages: 
+      keepalive: 
+        $ref: "#/components/messages/keepalive"
+      error: 
+        $ref: "#/components/messages/error"
+      warning: 
+        $ref: "#/components/messages/warning"
+      kick: 
+        $ref: "#/components/messages/kick"
+      acknowledge: 
+        $ref: "#/components/messages/acknowledge"
+      welcome: 
+        $ref: "#/components/messages/welcome"
+      force_scene: 
+        $ref: "#/components/messages/force_scene"
+      set_enforced_state: 
+        $ref: "#/components/messages/set_enforced_state"
+components: 
+  messages: 
+    keepalive: 
+      title: keepalivePacket
+      payload: 
+        $ref: "#/components/schemas/keepalivePacketPayload"
+    error: 
+      title: errorPacket
+      payload: 
+        $ref: "#/components/schemas/errorPacketPayload"
+    warning: 
+      title: warningPacket
+      payload: 
+        $ref: "#/components/schemas/warningPacketPayload"
+    kick: 
+      title: kickPacket
+      payload: 
+        $ref: "#/components/schemas/kickPacketPayload"
+    acknowledge: 
+      title: acknowledgePacket
+      payload: 
+        $ref: "#/components/schemas/acknowledgePacketPayload"
+    welcome: 
+      title: welcomePacket
+      payload: 
+        $ref: "#/components/schemas/welcomePacketPayload"
+    force_scene: 
+      title: force_scenePacket
+      payload: 
+        $ref: "#/components/schemas/force_scenePacketPayload"
+    set_enforced_state: 
+      title: set_enforced_statePacket
+      payload: 
+        $ref: "#/components/schemas/set_enforced_statePacketPayload"
+  schemas: 
+    keepalivePacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: keepalive
+    errorPacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: error
+        data: 
+          type: object
+          additionalProperties: false
+          properties: 
+            message: 
+              type: string
+            code: 
+              oneOf: 
+                - type: string
+                - type: string
+                  enum: 
+                    - INTERNAL_ERROR
+                    - INVALID_MESSAGE_FORMAT
+                    - INVALID ACCESS_TOKEN
+                    - SESSION_EXPIRED
+                    - AUTHENTICATION_TIMEOUT
+                    - INVALID_RECONNECTION_TOKEN
+                    - CLIENT_ALREADY_READY
+            fatal: 
+              type: boolean
+            cause: 
+              type: 
+                - array
+                - string
+                - number
+                - object
+                - integer
+                - boolean
+    warningPacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: warning
+        data: 
+          type: object
+          additionalProperties: false
+          properties: 
+            message: 
+              type: string
+            code: 
+              oneOf: 
+                - type: string
+                - type: string
+                  enum: 
+                    - MISSING_ACCESS_TOKEN
+            cause: 
+              type: 
+                - array
+                - string
+                - number
+                - object
+                - integer
+                - boolean
+    kickPacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: kick
+        data: 
+          type: object
+          additionalProperties: false
+          properties: 
+            reason: 
+              type: string
+              enum: 
+                - SESSION_INVALIDATED
+    acknowledgePacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: acknowledge
+        data: 
+          type: object
+          additionalProperties: false
+          properties: 
+            connectionId: 
+              type: string
+    welcomePacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: welcome
+        data: 
+          type: object
+          additionalProperties: false
+          properties: 
+            serverVersion: 
+              type: string
+            environment: 
+              oneOf: 
+                - type: string
+                  const: production
+                - type: string
+                  const: development
+    force_scenePacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: force_scene
+        data: 
+          type: object
+          additionalProperties: false
+          properties: 
+            scene: 
+              type: string
+              enum: 
+                - INTRO
+    set_enforced_statePacketPayload: 
+      type: object
+      additionalProperties: false
+      properties: 
+        id: 
+          type: string
+          const: set_enforced_state
+        data: 
+          type: object
+          additionalProperties: false
+          properties: 
+            name: 
+              type: string
+              enum: 
+                - CAN_HOME
+            value: 
+              type: boolean

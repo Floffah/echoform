@@ -1,7 +1,11 @@
 .idea
 
-# Created by https://www.toptal.com/developers/gitignore/api/node,jetbrains+all,godot,csharp
-# Edit at https://www.toptal.com/developers/gitignore?templates=node,jetbrains+all,godot,csharp
+# moon
+.moon/cache
+.moon/docker
+
+# Created by https://www.toptal.com/developers/gitignore/api/node,godot,csharp,jetbrains+all,macos,windows
+# Edit at https://www.toptal.com/developers/gitignore?templates=node,godot,csharp,jetbrains+all,macos,windows
 
 ### Csharp ###
 ## Ignore Visual Studio temporary files, build results, and
@@ -506,6 +510,39 @@ fabric.properties
 !.idea/codeStyles
 !.idea/runConfigurations
 
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### macOS Patch ###
+# iCloud generated files
+*.icloud
+
 ### Node ###
 # Logs
 logs
@@ -644,8 +681,25 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
-# End of https://www.toptal.com/developers/gitignore/api/node,jetbrains+all,godot,csharp
+### Windows ###
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
 
-# moon
-.moon/cache
-.moon/docker
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+
+# Windows shortcuts
+*.lnk
+
+# End of https://www.toptal.com/developers/gitignore/api/node,godot,csharp,jetbrains+all,macos,windows

@@ -5,10 +5,11 @@ import { like } from "drizzle-orm";
 
 import { db, users } from "@/db";
 
-export let server: Bun.Server;
+export let server: Bun.Server<never>;
 
 beforeAll(async () => {
-    await mock.module("../../src/constants/timeouts.ts", () => ({
+    // Mock the alias path used by production imports
+    await mock.module("@/constants/timeouts.ts", () => ({
         AUTH_TIMEOUT: 1000,
     }));
 });

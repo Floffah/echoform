@@ -18,6 +18,7 @@ type WebsocketTesterEvents = {
 
 export class WebsocketTester extends (EventEmitter as new () => TypedEmitter<WebsocketTesterEvents>) {
     outboundPackets: ClientboundPacket[] = [];
+    _opened = false;
 
     constructor(public conn: GameClientConnection) {
         super();
@@ -41,6 +42,8 @@ export class WebsocketTester extends (EventEmitter as new () => TypedEmitter<Web
 
                 this.emit("closed", code, reason);
 
+                this._opened = false;
+
                 return this.conn.onClose?.(
                     new CloseEvent("close", {
                         code: code,
@@ -54,6 +57,10 @@ export class WebsocketTester extends (EventEmitter as new () => TypedEmitter<Web
     }
 
     open() {
+        if (this._opened) {
+            throw new Error("WebSocket is already open");
+        }
+        this._opened = true;
         return this.conn.onOpen?.(new Event("open"), this._wsContext(1));
     }
 
@@ -69,6 +76,8 @@ export class WebsocketTester extends (EventEmitter as new () => TypedEmitter<Web
     close(code?: number, reason?: string) {
         this.emit("closed", code, reason);
 
+        this._opened = false;
+
         return this.conn.onClose?.(
             new CloseEvent("close", {
                 code,
@@ -76,5 +85,16 @@ export class WebsocketTester extends (EventEmitter as new () => TypedEmitter<Web
             }),
             this._wsContext(1),
         );
+    }
+
+    waitForClose(): Promise<void> {
+        return new Promise((resolve) => {
+            if (!this._opened) {
+                resolve();
+                return;
+            }
+
+            this.on("closed", () => resolve());
+        })
     }
 }

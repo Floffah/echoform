@@ -7,8 +7,8 @@ hero:
   tagline: Technical documentation for the Echoform game authoritative server
   actions:
     - theme: brand
-      text: Markdown Examples
-      link: /markdown-examples
+      text: Reference
+      link: /reference
     - theme: alt
       text: API Examples
       link: /api-examples

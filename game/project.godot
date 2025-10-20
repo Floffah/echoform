@@ -12,12 +12,16 @@ config_version=5
 
 config/name="EchoformMMOGame"
 run/main_scene="res://scenes/connecting_menu.tscn"
-config/features=PackedStringArray("4.4", "C#", "Forward Plus")
+config/features=PackedStringArray("4.5", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 AuthoritativeServerConnection="*res://scripts/authoritative/AuthoritativeServerConnection.cs"
+
+[debug]
+
+settings/gdscript/always_track_call_stacks=true
 
 [dotnet]
 
