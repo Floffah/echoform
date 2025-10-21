@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://d1rraib88gqiq"]
+
+[ext_resource type="Script" uid="uid://3cok14yow4b0" path="res://scripts/menus/loading.gd" id="1_ir5ef"]
+
+[node name="Loading" type="Node2D"]
+script = ExtResource("1_ir5ef")
+
+[node name="progress_percent" type="Label" parent="."]
+offset_left = 314.0
+offset_top = 177.0
+offset_right = 354.0
+offset_bottom = 200.0
+text = "0%"
