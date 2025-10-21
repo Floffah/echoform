@@ -1,8 +1,8 @@
-import { redis } from "bun";
+import { RedisClient, redis } from "bun";
 
 type Environment = "development" | "production" | "test";
 
-export const redisSubscriber = await redis.duplicate();
+export const redisSubscriber = new RedisClient();
 
 export interface PubsubKeyFormats {
     noop: "noop";

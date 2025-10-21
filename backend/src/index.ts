@@ -8,10 +8,6 @@ import v1 from "@/endpoints/v1";
 import { logger } from "@/lib/logger.ts";
 import { GameClientConnection } from "@/protocol/GameClientConnection.ts";
 
-if (process.env.NODE_ENV === "development") {
-    await import("../scripts/asyncapi");
-}
-
 logger.debug("Starting server...");
 
 export const app = new Hono();

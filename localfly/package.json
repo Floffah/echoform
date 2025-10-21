@@ -1,42 +1,42 @@
 {
-    "name": "localfly",
-    "module": "src/index.ts",
-    "type": "module",
-    "private": true,
-    "scripts": {
-        "build:dev": "bun build --target=bun --outdir=dist src/index.ts",
-        "build": "bun run build  --production --bytecode",
-        "compile": "bun build --target=bun --compile --outfile=dist/localfly --production ./src/index.ts",
-        "dev": "bun run --watch --no-clear-screen .",
-        "format": "prettier --write \"**/*.{ts,tsx}\"",
-        "lint": "eslint src/**/*.ts --ignore-pattern src/**/*.test.ts",
-        "test": "bun test",
-        "generate": "bunx openapi-typescript https://docs.machines.dev/spec/openapi3.json -o types/apis/machines.dev.d.ts --root-types",
-        "docs:dev": "vitepress dev docs",
-        "docs:build": "vitepress build docs",
-        "docs:preview": "vitepress preview docs",
-        "db:generate": "bunx drizzle-kit generate",
-        "db:migrate": "bun run scripts/migrate.ts"
-    },
-    "peerDependencies": {
-        "typescript": "^5"
-    },
-    "dependencies": {
-        "dockerode": "^4.0.7",
-        "drizzle-orm": "^0.44.2",
-        "hono": "^4.8.3",
-        "pino": "^9.7.0"
-    },
-    "devDependencies": {
-        "@eslint/js": "^9.29.0",
-        "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-        "@types/bun": "latest",
-        "@types/dockerode": "^3.3.41",
-        "drizzle-kit": "^0.31.4",
-        "eslint": "^9.29.0",
-        "openapi-typescript": "^7.8.0",
-        "pino-pretty": "^13.0.0",
-        "prettier": "^3.6.2",
-        "typescript-eslint": "^8.35.0"
-    }
+  "name": "localfly",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build:dev": "bun build --target=bun --outdir=dist src/index.ts",
+    "build": "bun run build:dev  --production --bytecode",
+    "compile": "bun build --target=bun --compile --outfile=dist/localfly --production ./src/index.ts",
+    "dev": "bun run --watch --no-clear-screen .",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "lint": "eslint src/**/*.ts --ignore-pattern src/**/*.test.ts",
+    "test": "bun test",
+    "generate": "bunx openapi-typescript https://docs.machines.dev/spec/openapi3.json -o types/apis/machines.dev.d.ts --root-types",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "db:generate": "bunx drizzle-kit generate",
+    "db:migrate": "bun run scripts/migrate.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.9",
+    "drizzle-orm": "^0.44.6",
+    "hono": "^4.10.1",
+    "pino": "^10.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/bun": "latest",
+    "@types/dockerode": "^3.3.44",
+    "drizzle-kit": "^0.31.5",
+    "eslint": "^9.38.0",
+    "openapi-typescript": "^7.10.1",
+    "pino-pretty": "^13.1.2",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.46.2"
+  }
 }

@@ -4,8 +4,8 @@
 .moon/cache
 .moon/docker
 
-# Created by https://www.toptal.com/developers/gitignore/api/node,godot,csharp,jetbrains+all,macos,windows
-# Edit at https://www.toptal.com/developers/gitignore?templates=node,godot,csharp,jetbrains+all,macos,windows
+# Created by https://www.toptal.com/developers/gitignore/api/node,godot,macos,csharp,windows,jetbrains+all,turbo
+# Edit at https://www.toptal.com/developers/gitignore?templates=node,godot,macos,csharp,windows,jetbrains+all,turbo
 
 ### Csharp ###
 ## Ignore Visual Studio temporary files, build results, and
@@ -681,6 +681,10 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
+### Turbo ###
+# Turborepo task cache
+.turbo
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db
@@ -702,4 +706,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# End of https://www.toptal.com/developers/gitignore/api/node,godot,csharp,jetbrains+all,macos,windows
+# End of https://www.toptal.com/developers/gitignore/api/node,godot,macos,csharp,windows,jetbrains+all,turbo

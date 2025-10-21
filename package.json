@@ -1,0 +1,11 @@
+{
+  "name": "echoform",
+  "workspaces": [
+    "backend",
+    "game"
+  ],
+  "packageManager": "bun@1.3.0",
+  "devDependencies": {
+    "turbo": "^2.5.8"
+  }
+}
