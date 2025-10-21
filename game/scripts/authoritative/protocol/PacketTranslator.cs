@@ -23,6 +23,9 @@ public class PacketTranslator {
             case PacketId.SetEnforcedState:
                 packet = new SetEnforcedStatePacket();
                 break;
+            case PacketId.ForceScene:
+                packet = new ForceScenePacket();
+                break;
             default:
                 GD.PrintErr("Unknown packet id: ", packetId);
                 return null;

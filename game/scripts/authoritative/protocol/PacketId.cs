@@ -4,6 +4,7 @@ public class PacketId {
     public const string Acknowledge = "acknowledge";
     public const string Welcome = "welcome";
     public const string SetEnforcedState = "set_enforced_state";
+    public const string ForceScene = "force_scene";
 
     // serverbound
     public const string ClientDeclaration = "client_declaration";
