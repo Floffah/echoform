@@ -16,7 +16,10 @@ public class ForceScenePacket : ClientboundPacket {
         GD.Print($"Forcing scene change to: {SceneName}");
 
         var loadingGlobal = AuthoritativeServerConnection.Instance.GetTree().Root.GetNode("/root/GlobalLoading");
-        var scene_path = SceneNames.Map[SceneName];
+        if (!SceneNames.Map.TryGetValue(SceneName, out var scene_path)) {
+            GD.PrintErr($"Scene name '{SceneName}' not found in SceneNames.Map.");
+            return;
+        }
 
         loadingGlobal.Call("force_scene_change", scene_path);
     }
