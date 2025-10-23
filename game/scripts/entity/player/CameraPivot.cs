@@ -13,6 +13,7 @@ public partial class CameraPivot : Marker3D {
         player = GetParent<Player>();
         if (player == null) {
             GD.PrintErr("CameraPivot must be a child of Player.");
+            GetTree().Quit(1);
         }
     }
 
