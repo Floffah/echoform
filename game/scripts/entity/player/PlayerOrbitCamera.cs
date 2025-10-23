@@ -31,11 +31,9 @@ public partial class PlayerOrbitCamera : Marker3D {
         }
         else if (Input.IsActionJustPressed("zoom_in")) {
             springArm.SpringLength = Mathf.Max(MinZoom, springArm.SpringLength - ZoomIncrement);
-            GD.Print("Zoom In: ", springArm.SpringLength);
         }
         else if (Input.IsActionJustPressed("zoom_out")) {
             springArm.SpringLength = Mathf.Min(MaxZoom, springArm.SpringLength + ZoomIncrement);
-            GD.Print("Zoom Out: ", springArm.SpringLength);
         }
     }
 }
