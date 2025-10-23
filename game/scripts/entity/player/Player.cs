@@ -42,7 +42,7 @@ public partial class Player : CharacterBody3D {
         Velocity = velocity;
         MoveAndSlide();
 
-        if (Velocity.X > 0.1f || Velocity.Z > 0.1f || Velocity.X < -0.1f || Velocity.Z < -0.1f) {
+        if (Mathf.Abs(Velocity.X) > 0.1f || Mathf.Abs(Velocity.Z) > 0.1f) {
             characterAnimations.Play("walk");
         }
         else {
