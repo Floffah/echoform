@@ -1,0 +1,24 @@
+[gd_scene load_steps=5 format=3 uid="uid://bcx5mei6ibpru"]
+
+[ext_resource type="Script" uid="uid://bsmme7chrs152" path="res://scripts/entity/player/Player.cs" id="1_y8qct"]
+[ext_resource type="PackedScene" uid="uid://dkky24o7mka2n" path="res://models/player/eform.gltf" id="1_yeb5f"]
+[ext_resource type="PackedScene" uid="uid://va2ai1ipuull" path="res://models/player/collision_shape_3d.tscn" id="3_8krch"]
+[ext_resource type="Script" uid="uid://r1j1br652ged" path="res://scripts/entity/player/CameraPivot.cs" id="4_01b03"]
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_y8qct")
+
+[node name="blockbench_export" parent="." instance=ExtResource("1_yeb5f")]
+
+[node name="CollisionShape3D" parent="." instance=ExtResource("3_8krch")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0625, 0.52563155, 0.0075683594)
+
+[node name="Pivot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7844278, 0)
+script = ExtResource("4_01b03")
+
+[node name="SpringArm3D" type="SpringArm3D" parent="Pivot"]
+spring_length = 3.0
+
+[node name="Camera3D" type="Camera3D" parent="Pivot/SpringArm3D"]
+current = true

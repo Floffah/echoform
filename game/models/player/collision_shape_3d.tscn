@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://va2ai1ipuull"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_y8qct"]
+size = Vector3(1, 0.89434814, 0.26123047)
+
+[node name="CollisionShape3D" type="CollisionShape3D"]
+shape = SubResource("BoxShape3D_y8qct")
