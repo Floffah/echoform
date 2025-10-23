@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://bu0me8s1g5osd"]
+[gd_scene load_steps=5 format=3 uid="uid://bu0me8s1g5osd"]
 
 [ext_resource type="PackedScene" uid="uid://bcx5mei6ibpru" path="res://scenes/objects/player/Player.tscn" id="1_ioskq"]
+[ext_resource type="Script" uid="uid://r1j1br652ged" path="res://scripts/entity/player/PlayerOrbitCamera.cs" id="2_yjqpq"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sjfbp"]
 albedo_color = Color(0.26657522, 0.2665752, 0.26657525, 1)
@@ -36,8 +37,18 @@ transform = Transform3D(1, 0, 0, 0, 0.66676664, 0.74526656, 0, -0.74526656, 0.66
 [node name="LightmapGI" type="LightmapGI" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.9580787, 0)
 
-[node name="Player" parent="." instance=ExtResource("1_ioskq")]
+[node name="Player" parent="." node_paths=PackedStringArray("CameraRig") instance=ExtResource("1_ioskq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5592638, 0)
+CameraRig = NodePath("../CameraRig")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_sjfbp")
+
+[node name="CameraRig" type="Marker3D" parent="."]
+script = ExtResource("2_yjqpq")
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraRig"]
+spring_length = 3.0
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm3D"]
+current = true
