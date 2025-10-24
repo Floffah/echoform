@@ -1,0 +1,57 @@
+Echoform Source License
+=======================
+
+Copyright (c) 2025 Floffah  
+All rights reserved.
+
+This repository is made publicly accessible for the purposes of transparency, personal portfolio,
+technical discussion, and internal or collaborative documentation.
+
+This is **not an open source license**. No license is granted to use, copy,
+modify, publish, distribute, sublicense, or sell any part of the source code,
+assets, documentation, or other files in this repository.
+
+You may:
+
+- View the contents of this repository for personal reference
+- Discuss the contents publicly, so long as no code is reused, copied, or redistributed in any form
+
+You may **not**:
+
+- Reuse, incorporate, or adapt this code or any part of it in your own project
+- Copy, redistribute, or mirror any portion of the codebase or its assets
+- Fork or clone this repository
+- Publish this code under another name or license
+- Use the code or assets in any commercial, open source, or public-facing project
+- Use the code or assets in educational settings, except as explicitly defined below
+
+All content in this repository is the intellectual property of the author(s) and
+is protected under applicable copyright and intellectual property laws.
+
+The author(s) retain full rights to:
+
+- Remove or privatize this repository at any time
+- Release parts or all of the project under a different license in the future
+- Commercialize the project, including selling it on platforms such as Steam
+
+Violation of these terms may result in legal action under applicable intellectual property law.
+
+For licensing inquiries, collaboration requests, or permission to use any part of
+this project, please contact: [enquiries@floffah.dev](mailto:enquiries@floffah.dev) / https://www.floffah.dev
+
+---
+
+## Amendments
+
+### Educational Use Exception
+
+You are permitted to use this code in **non-commercial educational settings** for the purposes of learning, classroom instruction, or academic exploration, provided that:
+
+- You do not publish, upload, or otherwise distribute modified or unmodified versions of the code, in whole or in part
+- You do not use the code or any derived version in **any commercial or monetized context**, including but not limited to:
+  - YouTube tutorials
+  - Educational blog posts or articles
+  - Paid courses (online or in-person)
+  - Online or public repositories containing this code
+- Proper attribution is given to the original author when used in academic presentations or internal materials
+- No part of the code or project is used in software that is publicly accessible, even if non-commercial, without explicit written permission from the author(s)

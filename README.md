@@ -1,4 +1,12 @@
-tMy attempt at making an MMO game using Godot and Bun.
+# 📜 License Notice
+This repository is provided for transparency, personal portfolio, and documentation purposes. <br/>
+It is not open source. All rights reserved by the author. 
+
+See [`LICENSE`](./LICENSE) for full terms.
+
+# Echoform
+
+My attempt at making an MMO game using Godot and Bun.
 
 Packages:
 
