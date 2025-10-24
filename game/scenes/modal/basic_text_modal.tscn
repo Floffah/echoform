@@ -1,0 +1,91 @@
+[gd_scene load_steps=7 format=3 uid="uid://bpo5ihu8h4jji"]
+
+[ext_resource type="Script" uid="uid://bnyr4aeean5tf" path="res://scenes/modal/basic_text_modal.gd" id="1_37te1"]
+[ext_resource type="Theme" uid="uid://cfw15mand7swi" path="res://scenes/modal/header_theme.tres" id="1_bfvhs"]
+[ext_resource type="Theme" uid="uid://cpub04oardilt" path="res://scenes/connecting_menu/content_theme.tres" id="2_37te1"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_84nss"]
+font_size = 21
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_os3fi"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1, 0.1, 0.1, 0.6)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+expand_margin_left = 7.0
+expand_margin_right = 7.0
+
+[sub_resource type="Theme" id="Theme_yr8gy"]
+Button/font_sizes/font_size = 12
+Button/styles/normal = SubResource("StyleBoxFlat_os3fi")
+
+[node name="CenterContainer" type="CenterContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_37te1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("1_bfvhs")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
+
+[node name="Title" type="Label" parent="VBoxContainer/Header/MarginContainer"]
+layout_mode = 2
+text = "Title"
+label_settings = SubResource("LabelSettings_84nss")
+
+[node name="Content" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_37te1")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/Content"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
+
+[node name="Label" type="Label" parent="VBoxContainer/Content/MarginContainer"]
+layout_mode = 2
+text = "Some content"
+
+[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_37te1")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/PanelContainer/MarginContainer"]
+layout_direction = 3
+layout_mode = 2
+
+[node name="DismissButton" type="Button" parent="VBoxContainer/PanelContainer/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme = SubResource("Theme_yr8gy")
+text = "OK"
+
+[connection signal="pressed" from="VBoxContainer/PanelContainer/MarginContainer/HBoxContainer/DismissButton" to="." method="_on_dismiss_button_pressed"]

@@ -13,6 +13,9 @@ public partial class AuthoritativeServerConnection : Node {
 	private string _accessToken;
 	private string _refreshToken;
 
+	private readonly PackedScene couldntConnectModalScene =
+		ResourceLoader.Load<PackedScene>("res://scenes/modal/specialised/couldnt_connect_modal.tscn");
+
 	public override void _Ready() {
 		if (Instance != null) {
 			GD.PrintErr("AuthoritativeServerConnection instance already exists. Destroying duplicate.");
@@ -49,6 +52,12 @@ public partial class AuthoritativeServerConnection : Node {
 		} else {
 			GD.PrintErr("Authentication failed. Response code: ", responseCode, ", Body: ",
 				Encoding.UTF8.GetString(body));
+
+			var couldntConnectModal = couldntConnectModalScene.Instantiate<CenterContainer>();
+			couldntConnectModal.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+			GetTree().Root.AddChild(couldntConnectModal);
+
+			Reset();
 		}
 	}
 

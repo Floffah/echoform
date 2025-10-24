@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://bdry5nvuem1jo"]
+
+[ext_resource type="PackedScene" uid="uid://bpo5ihu8h4jji" path="res://scenes/modal/basic_text_modal.tscn" id="1_ralu3"]
+
+[node name="CenterContainer" instance=ExtResource("1_ralu3")]
+
+[node name="Title" parent="VBoxContainer/Header/MarginContainer" index="0"]
+text = "Could not connect"
+
+[node name="Label" parent="VBoxContainer/Content/MarginContainer" index="0"]
+text = "An error occurred while trying to connect
+to the server. Please contact the
+developers for more information."
