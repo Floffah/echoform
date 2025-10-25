@@ -107,10 +107,10 @@ if (process.env.NODE_ENV === "development") {
         type: "http",
         protocol: "tcp",
         port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
-        // txt: {
-        //     environment: "development",
-        //     app: "echoform",
-        // },
+        txt: {
+            environment: "development",
+            app: "echoform",
+        },
         host: "echoform._http._tcp.local.",
     });
 
