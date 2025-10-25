@@ -1,6 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://bu0me8s1g5osd"]
+[gd_scene load_steps=6 format=3 uid="uid://bu0me8s1g5osd"]
 
-[ext_resource type="PackedScene" uid="uid://bcx5mei6ibpru" path="res://scenes/objects/player/Player.tscn" id="1_ioskq"]
+[ext_resource type="PackedScene" path="res://scenes/objects/player/Player.tscn" id="1_ioskq"]
 [ext_resource type="Script" uid="uid://r1j1br652ged" path="res://scripts/entity/player/PlayerOrbitCamera.cs" id="2_yjqpq"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sjfbp"]
@@ -11,6 +11,10 @@ emission_enabled = true
 emission = Color(0.10747983, 0.107479684, 0.10747974, 1)
 emission_energy_multiplier = 0.69
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yjqpq"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0)
+
 [sub_resource type="Environment" id="Environment_sjfbp"]
 background_mode = 2
 ambient_light_color = Color(0.17641911, 0.17641908, 0.17641908, 1)
@@ -19,30 +23,43 @@ ssao_enabled = true
 
 [node name="Intro" type="Node3D"]
 
-[node name="MirrorFloor" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.43399048, -0.41625977, -0.7166443)
+[node name="Level" type="Node3D" parent="."]
+
+[node name="MirrorFloor" type="CSGBox3D" parent="Level"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.473778, -0.41625977, -0.8248062)
 use_collision = true
-size = Vector3(6.2334595, 0.16748047, 7.0912476)
+size = Vector3(90.028824, 0.16748047, 119.189926)
 material = SubResource("StandardMaterial3D_sjfbp")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.83890814, 0.544273, 0, -0.544273, 0.83890814, 0, 2.4886956, 0)
-
-[node name="testbox" type="CSGBox3D" parent="."]
+[node name="testbox" type="CSGBox3D" parent="Level"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.3956532)
 
-[node name="SpotLight3D" type="SpotLight3D" parent="."]
+[node name="WorldBorder" type="CSGBox3D" parent="Level"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2704773, 1.6923218, -1.1884766)
+use_collision = true
+flip_faces = true
+size = Vector3(16.16278, 4.1883545, 11.068359)
+material = SubResource("StandardMaterial3D_yjqpq")
+
+[node name="Lighting" type="Node3D" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Lighting"]
+transform = Transform3D(1, 0, 0, 0, 0.83890814, 0.544273, 0, -0.544273, 0.83890814, 0, 2.4886956, 0)
+
+[node name="SpotLight3D" type="SpotLight3D" parent="Lighting"]
 transform = Transform3D(1, 0, 0, 0, 0.66676664, 0.74526656, 0, -0.74526656, 0.66676664, 0, 1.4840733, 0)
 
-[node name="LightmapGI" type="LightmapGI" parent="."]
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="LightmapGI" type="LightmapGI" parent="Environment"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.9580787, 0)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Environment"]
+environment = SubResource("Environment_sjfbp")
 
 [node name="Player" parent="." node_paths=PackedStringArray("CameraRig") instance=ExtResource("1_ioskq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5592638, 0)
 CameraRig = NodePath("../CameraRig")
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_sjfbp")
 
 [node name="CameraRig" type="Marker3D" parent="."]
 script = ExtResource("2_yjqpq")
