@@ -49,6 +49,7 @@ public partial class AuthoritativeServerConnection : Node {
 			}
 		}, error => {
 			GD.PrintErr("Error during Zeroconf service discovery: ", error);
+			origin = "localhost:3000";
 			Authenticate();
 		}, () => {
 			GD.Print("Zeroconf service discovery completed.");
