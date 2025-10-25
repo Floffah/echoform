@@ -46,7 +46,6 @@ public partial class AuthoritativeServerConnection : Node {
 				GD.Print("Using EchoformMMO service at: ", origin);
 			} else {
 				GD.PrintErr("No EchoformMMO service found on host: ", host.DisplayName);
-				// print services
 			}
 		}, error => {
 			GD.PrintErr("Error during Zeroconf service discovery: ", error);
