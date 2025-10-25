@@ -1,13 +1,17 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 using Godot;
 using Godot.Collections;
+using Zeroconf;
 
 public partial class AuthoritativeServerConnection : Node {
 	public static AuthoritativeServerConnection Instance { get; private set; }
-	public static string Host = "192.168.110.190:3000";
 
-	public Dictionary<string, bool> EnforcedState { get; private set; } = new();
+	public Godot.Collections.Dictionary<string, bool> EnforcedState { get; private set; } = new();
 
+	private string origin;
+	private bool connectReady = false;
 	private WebSocketPeer _socket;
 
 	private string _accessToken;
@@ -25,6 +29,36 @@ public partial class AuthoritativeServerConnection : Node {
 
 		Instance = this;
 
+		IObservable<IZeroconfHost> results = ZeroconfResolver.Resolve("_http._tcp.local.");
+
+		results.Subscribe(host => {
+			if (origin != null) {
+				// Already found a host
+				return;
+			}
+
+			GD.Print("Discovered Zeroconf host: ", host.DisplayName, " at ", host.IPAddress);
+
+			host.Services.TryGetValue("echoform._http._tcp.local.", out var service);
+			if (service != null) {
+				origin = $"{host.IPAddress}:{service.Port}";
+				connectReady = true;
+				GD.Print("Using EchoformMMO service at: ", origin);
+			} else {
+				GD.PrintErr("No EchoformMMO service found on host: ", host.DisplayName);
+			}
+		}, error => {
+			GD.PrintErr("Error during Zeroconf service discovery: ", error);
+			origin = "localhost:3000";
+			Authenticate();
+		}, () => {
+			GD.Print("Zeroconf service discovery completed.");
+		});
+	}
+
+	private void Authenticate() {
+		connectReady = false;
+
 		var httpNode = new HttpRequest();
 		AddChild(httpNode);
 
@@ -35,7 +69,7 @@ public partial class AuthoritativeServerConnection : Node {
 		postBody.Add("username", "floffah");
 		postBody.Add("password", "password");
 
-		httpNode.Request($"http://{Host}/v1/user/auth", new string[] {
+		httpNode.Request($"http://{origin}/v1/user/auth", new string[] {
 			"Content-Type: application/json",
 		}, HttpClient.Method.Post, Json.Stringify(postBody));
 	}
@@ -82,7 +116,7 @@ public partial class AuthoritativeServerConnection : Node {
 			"Device: EchoformMMOGame, Godot 4.4.1",
 			"Authorization: Bearer " + _accessToken
 		});
-		var error = _socket.ConnectToUrl($"ws://{Host}/client");
+		var error = _socket.ConnectToUrl($"ws://{origin}/client");
 
 		if (error != Error.Ok) {
 			Reset();
@@ -95,6 +129,10 @@ public partial class AuthoritativeServerConnection : Node {
 	}
 
 	public override void _Process(double delta) {
+		if (connectReady && origin != null && _socket == null) {
+			Authenticate();
+		}
+
 		if (_socket == null) {
 			return;
 		}

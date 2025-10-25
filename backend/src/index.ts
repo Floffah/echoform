@@ -1,4 +1,5 @@
 import { Scalar } from "@scalar/hono-api-reference";
+import Bonjour from "bonjour-service";
 import { Hono } from "hono";
 import { openAPIRouteHandler } from "hono-openapi";
 import { upgradeWebSocket, websocket } from "hono/bun";
@@ -97,6 +98,26 @@ app.get(
         servers: openapiServers,
     }),
 );
+
+if (process.env.NODE_ENV === "development") {
+    const bonjour = new Bonjour();
+
+    const service = bonjour.publish({
+        name: "echoform",
+        type: "http",
+        protocol: "tcp",
+        port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+        txt: {
+            environment: "development",
+            app: "echoform",
+        },
+        host: "echoform._http._tcp.local.",
+    });
+
+    logger.debug(
+        `Bonjour service published on host ${service.host} for development environment.`,
+    );
+}
 
 export default {
     fetch: app.fetch,

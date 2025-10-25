@@ -211,17 +211,9 @@ sequenceDiagram
     S-->>C: (maybe) force_scene INTRO
 ```
 
-## Assumptions About Client
-
-The client repository (referenced as `../game`) was not accessible in this workspace, so client-side specifics are inferred from server expectations and packet schemas.
-
 ## Glossary
 
 - Access Token: Opaque token that authenticates a WebSocket connection and (future) protected REST requests.
 - Refresh Token: Opaque longer-lived token intended for future access-token renewal.
 - Session: Logical server-held authentication context tying tokens to a user.
 - Onboarding: Gate controlled by `onboarded` field; if false, forces INTRO scene.
-
----
-
-Last updated: 2025-10-07
