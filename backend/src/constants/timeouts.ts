@@ -1,1 +1,3 @@
-export const AUTH_TIMEOUT = 10000;
+import { config } from "@/lib/config.ts";
+
+export const AUTH_TIMEOUT = config.AUTH_TIMEOUT_MS;

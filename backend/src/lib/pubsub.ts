@@ -1,8 +1,9 @@
-import { RedisClient, redis } from "bun";
+import { RedisClient, redis as bunRedis } from "bun";
 
 type Environment = "development" | "production" | "test";
 
 export const redisSubscriber = new RedisClient();
+export const redis = bunRedis;
 
 export interface PubsubKeyFormats {
     noop: "noop";
@@ -35,7 +36,7 @@ export function emitPubsubMessage<Key extends keyof PubsubMessages>(
     channelValue: PubsubChannelFormats[Key],
     message: PubsubMessages[Key],
 ) {
-    return redis.publish(
+    return bunRedis.publish(
         pubsubChannel(channel, channelValue),
         JSON.stringify(message),
     );

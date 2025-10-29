@@ -10,11 +10,22 @@ import z from "zod";
 import { db, userSessions, users } from "@/db";
 import { TOKEN_LENGTH } from "@/lib/constants.ts";
 import { emitPubsubMessage } from "@/lib/pubsub.ts";
+import { rateLimit } from "@/lib/rateLimit.ts";
 
 const app = new Hono();
 
+// Apply rate limiting to authentication endpoints: 10 requests per 15 minutes
+// Skip rate limiting during tests
+const authRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // 10 requests per window
+    keyPrefix: "auth-limit",
+    skip: () => process.env.NODE_ENV === "test",
+});
+
 app.post(
     "/register",
+    authRateLimit,
     describeRoute({
         operationId: "registerUser",
         summary: "Register a new user",
@@ -70,6 +81,7 @@ export const v1UserAuth202Response = z.object({
 
 app.post(
     "/auth",
+    authRateLimit,
     describeRoute({
         operationId: "authenticateUser",
         summary: "Authenticate a user",

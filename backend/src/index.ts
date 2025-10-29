@@ -1,19 +1,35 @@
 import { Scalar } from "@scalar/hono-api-reference";
 import Bonjour from "bonjour-service";
 import { Hono } from "hono";
+import { compress } from "hono/compress";
 import { openAPIRouteHandler } from "hono-openapi";
 import { upgradeWebSocket, websocket } from "hono/bun";
 import { nanoid } from "nanoid";
 
 import v1 from "@/endpoints/v1";
+import { config } from "@/lib/config.ts";
+import { performHealthCheck } from "@/lib/healthCheck.ts";
 import { logger } from "@/lib/logger.ts";
+import { startSessionCleanupJob } from "@/lib/sessionCleanup.ts";
 import { GameClientConnection } from "@/protocol/GameClientConnection.ts";
 
 logger.debug("Starting server...");
 
+// Start session cleanup job with configured interval
+if (process.env.NODE_ENV !== "test") {
+    startSessionCleanupJob(config.SESSION_CLEANUP_INTERVAL_MS);
+}
+
 export const app = new Hono();
 
-app.get("/healthz", (c) => c.json({ status: "ok" }));
+// Add compression middleware for all HTTP responses
+app.use("*", compress());
+
+app.get("/healthz", async (c) => {
+    const health = await performHealthCheck();
+    const statusCode = health.status === "ok" ? 200 : health.status === "degraded" ? 503 : 503;
+    return c.json(health, statusCode);
+});
 
 app.get(
     "/client",
