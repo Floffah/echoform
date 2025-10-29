@@ -29,13 +29,6 @@ if (typeof process.env["DATABASE_URL"] === "string") {
         const sql = neon(process.env["DATABASE_URL"], {
             // Enable connection pooling
             fullResults: true,
-            // Fetch size for large result sets
-            fetchOptions: {
-                // Timeout for queries (30 seconds)
-                ...(typeof globalThis.fetch === "function" && {
-                    signal: AbortSignal.timeout(30000),
-                }),
-            },
         });
 
         db = drizzleNeon(sql, {

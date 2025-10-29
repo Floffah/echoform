@@ -1,7 +1,4 @@
-import { sql } from "drizzle-orm";
-
-import { db } from "@/db";
-import { redis, redisSubscriber } from "@/lib/pubsub.ts";
+import { logger } from "@/lib/logger.ts";
 
 export interface HealthCheckResult {
     status: "ok" | "degraded" | "error";
@@ -19,96 +16,90 @@ interface HealthCheckStatus {
     responseTime?: number;
 }
 
-async function checkDatabase(): Promise<HealthCheckStatus> {
-    const start = Date.now();
-    try {
-        await db.execute(sql`SELECT 1`);
-        return {
-            status: "ok",
-            responseTime: Date.now() - start,
-        };
-    } catch (error) {
-        return {
-            status: "error",
-            message: error instanceof Error ? error.message : "Unknown error",
-            responseTime: Date.now() - start,
-        };
+let healthWorker: Worker | null = null;
+let cachedHealthResult: HealthCheckResult | null = null;
+let healthCheckInterval: Timer | null = null;
+
+/**
+ * Start the health check worker that periodically monitors system health
+ * @param intervalMs Interval in milliseconds (default: 30 seconds)
+ */
+export function startHealthCheckWorker(intervalMs: number = 30000): void {
+    if (healthWorker) {
+        logger.warn("Health check worker already running");
+        return;
     }
-}
 
-async function checkRedis(): Promise<HealthCheckStatus> {
-    const start = Date.now();
-    try {
-        // Test Redis connection by setting and getting a test key
-        const testKey = "__health_check__";
-        await redis.set(testKey, "ok");
-        const result = await redis.get(testKey);
-        await redis.del(testKey);
+    logger.info(
+        `Starting health check worker with interval: ${intervalMs}ms (${intervalMs / 1000} seconds)`,
+    );
 
-        if (result === "ok") {
-            return {
-                status: "ok",
-                responseTime: Date.now() - start,
-            };
-        } else {
-            return {
-                status: "error",
-                message: "Redis health check failed",
-                responseTime: Date.now() - start,
-            };
-        }
-    } catch (error) {
-        return {
-            status: "error",
-            message: error instanceof Error ? error.message : "Unknown error",
-            responseTime: Date.now() - start,
-        };
-    }
-}
+    // Create the worker
+    healthWorker = new Worker(
+        new URL("../workers/healthCheck.worker.ts", import.meta.url).href,
+    );
 
-async function checkRedisSubscriber(): Promise<HealthCheckStatus> {
-    const start = Date.now();
-    try {
-        // For subscriber, we just check if it's connected
-        // RedisClient doesn't expose a direct health check, so we'll mark as ok
-        // if it was successfully created
-        return {
-            status: "ok",
-            responseTime: Date.now() - start,
-        };
-    } catch (error) {
-        return {
-            status: "error",
-            message: error instanceof Error ? error.message : "Unknown error",
-            responseTime: Date.now() - start,
-        };
-    }
-}
-
-export async function performHealthCheck(): Promise<HealthCheckResult> {
-    const [database, redisCheck, redisSubCheck] = await Promise.all([
-        checkDatabase(),
-        checkRedis(),
-        checkRedisSubscriber(),
-    ]);
-
-    const allOk =
-        database.status === "ok" &&
-        redisCheck.status === "ok" &&
-        redisSubCheck.status === "ok";
-
-    const anyError =
-        database.status === "error" ||
-        redisCheck.status === "error" ||
-        redisSubCheck.status === "error";
-
-    return {
-        status: allOk ? "ok" : anyError ? "error" : "degraded",
-        timestamp: new Date().toISOString(),
-        checks: {
-            database,
-            redis: redisCheck,
-            redisSubscriber: redisSubCheck,
-        },
+    // Handle messages from worker
+    healthWorker.onmessage = (event: MessageEvent<HealthCheckResult>) => {
+        cachedHealthResult = event.data;
+        logger.debug("Health check completed", event.data);
     };
+
+    healthWorker.onerror = (error) => {
+        logger.error(error, "Health check worker error");
+    };
+
+    // Perform initial check immediately
+    healthWorker.postMessage("check");
+
+    // Set up periodic checks
+    healthCheckInterval = setInterval(() => {
+        healthWorker?.postMessage("check");
+    }, intervalMs);
+}
+
+/**
+ * Stop the health check worker
+ */
+export function stopHealthCheckWorker(): void {
+    if (healthCheckInterval) {
+        clearInterval(healthCheckInterval);
+        healthCheckInterval = null;
+    }
+
+    if (healthWorker) {
+        healthWorker.terminate();
+        healthWorker = null;
+        logger.info("Health check worker stopped");
+    }
+}
+
+/**
+ * Get the cached health check result
+ * Returns the most recent health check from the worker
+ */
+export function getCachedHealthCheck(): HealthCheckResult {
+    if (!cachedHealthResult) {
+        // Return a default result if no check has been performed yet
+        return {
+            status: "degraded",
+            timestamp: new Date().toISOString(),
+            checks: {
+                database: {
+                    status: "error",
+                    message: "Health check not yet initialized",
+                },
+                redis: {
+                    status: "error",
+                    message: "Health check not yet initialized",
+                },
+                redisSubscriber: {
+                    status: "error",
+                    message: "Health check not yet initialized",
+                },
+            },
+        };
+    }
+
+    return cachedHealthResult;
 }

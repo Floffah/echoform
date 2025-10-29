@@ -3,7 +3,7 @@ import { addDays, subDays } from "date-fns";
 import { eq } from "drizzle-orm";
 
 import { db, userSessions, users } from "@/db";
-import { cleanupExpiredSessions } from "@/lib/sessionCleanup.ts";
+import { cleanupExpiredSessions } from "@/lib/sessionCleanupUtils.ts";
 import { getTestableUsername } from "./utils/testableData.ts";
 
 describe("Session Cleanup", () => {

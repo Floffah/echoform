@@ -1,60 +1,71 @@
-import { lt } from "drizzle-orm";
-
-import { db, userSessions } from "@/db";
 import { logger } from "@/lib/logger.ts";
 
+let cleanupWorker: Worker | null = null;
+let cleanupInterval: Timer | null = null;
+
 /**
- * Clean up expired user sessions from the database
- * @returns Number of sessions deleted
+ * Start the session cleanup worker that periodically removes expired sessions
+ * @param intervalMs Interval in milliseconds (default: 1 hour)
  */
-export async function cleanupExpiredSessions(): Promise<number> {
-    const now = new Date();
-
-    try {
-        const result = await db
-            .delete(userSessions)
-            .where(lt(userSessions.expiresAt, now));
-
-        const deletedCount = result.rowCount ?? 0;
-
-        if (deletedCount > 0) {
-            logger.info(
-                `Cleaned up ${deletedCount} expired session(s) from database`,
-            );
-        }
-
-        return deletedCount;
-    } catch (error) {
-        logger.error(error, "Failed to clean up expired sessions");
-        throw error;
+export function startSessionCleanupWorker(intervalMs?: number): void {
+    if (cleanupWorker) {
+        logger.warn("Session cleanup worker already running");
+        return;
     }
-}
 
-/**
- * Start a periodic cleanup job for expired sessions
- * @param intervalMs Interval in milliseconds (default: from config or 1 hour)
- * @returns Function to stop the cleanup job
- */
-export function startSessionCleanupJob(intervalMs?: number): () => void {
     const interval = intervalMs ?? 60 * 60 * 1000;
 
     logger.info(
-        `Starting session cleanup job with interval: ${interval}ms (${interval / 1000 / 60} minutes)`,
+        `Starting session cleanup worker with interval: ${interval}ms (${interval / 1000 / 60} minutes)`,
     );
 
-    const intervalId = setInterval(() => {
-        cleanupExpiredSessions().catch((error) => {
-            logger.error(error, "Session cleanup job failed");
-        });
-    }, interval);
+    // Create the worker
+    cleanupWorker = new Worker(
+        new URL("../workers/sessionCleanup.worker.ts", import.meta.url).href,
+    );
 
-    // Run cleanup immediately on start
-    cleanupExpiredSessions().catch((error) => {
-        logger.error(error, "Initial session cleanup failed");
-    });
-
-    return () => {
-        clearInterval(intervalId);
-        logger.info("Session cleanup job stopped");
+    // Handle messages from worker
+    cleanupWorker.onmessage = (
+        event: MessageEvent<{
+            success: boolean;
+            deletedCount?: number;
+            error?: string;
+        }>,
+    ) => {
+        if (event.data.success) {
+            logger.debug(
+                `Session cleanup completed: ${event.data.deletedCount} sessions removed`,
+            );
+        } else {
+            logger.error(`Session cleanup failed: ${event.data.error}`);
+        }
     };
+
+    cleanupWorker.onerror = (error) => {
+        logger.error(error, "Session cleanup worker error");
+    };
+
+    // Perform initial cleanup immediately
+    cleanupWorker.postMessage("cleanup");
+
+    // Set up periodic cleanup
+    cleanupInterval = setInterval(() => {
+        cleanupWorker?.postMessage("cleanup");
+    }, interval);
+}
+
+/**
+ * Stop the session cleanup worker
+ */
+export function stopSessionCleanupWorker(): void {
+    if (cleanupInterval) {
+        clearInterval(cleanupInterval);
+        cleanupInterval = null;
+    }
+
+    if (cleanupWorker) {
+        cleanupWorker.terminate();
+        cleanupWorker = null;
+        logger.info("Session cleanup worker stopped");
+    }
 }

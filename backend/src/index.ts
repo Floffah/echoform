@@ -8,16 +8,23 @@ import { nanoid } from "nanoid";
 
 import v1 from "@/endpoints/v1";
 import { config } from "@/lib/config.ts";
-import { performHealthCheck } from "@/lib/healthCheck.ts";
+import {
+    getCachedHealthCheck,
+    startHealthCheckWorker,
+} from "@/lib/healthCheck.ts";
 import { logger } from "@/lib/logger.ts";
-import { startSessionCleanupJob } from "@/lib/sessionCleanup.ts";
+import { startSessionCleanupWorker } from "@/lib/sessionCleanup.ts";
 import { GameClientConnection } from "@/protocol/GameClientConnection.ts";
 
 logger.debug("Starting server...");
 
-// Start session cleanup job with configured interval
+// Start workers (run in background, don't block main thread)
 if (process.env.NODE_ENV !== "test") {
-    startSessionCleanupJob(config.SESSION_CLEANUP_INTERVAL_MS);
+    // Health check worker runs every 30 seconds
+    startHealthCheckWorker(30000);
+
+    // Session cleanup worker runs with configured interval (default: 1 hour)
+    startSessionCleanupWorker(config.SESSION_CLEANUP_INTERVAL_MS);
 }
 
 export const app = new Hono();
@@ -25,9 +32,10 @@ export const app = new Hono();
 // Add compression middleware for all HTTP responses
 app.use("*", compress());
 
-app.get("/healthz", async (c) => {
-    const health = await performHealthCheck();
-    const statusCode = health.status === "ok" ? 200 : health.status === "degraded" ? 503 : 503;
+app.get("/healthz", (c) => {
+    const health = getCachedHealthCheck();
+    const statusCode =
+        health.status === "ok" ? 200 : health.status === "degraded" ? 503 : 503;
     return c.json(health, statusCode);
 });
 
