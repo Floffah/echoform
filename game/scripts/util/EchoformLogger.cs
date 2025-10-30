@@ -46,7 +46,7 @@ public partial class EchoformLogger : Node {
         string template = DateTime.Now.ToString("HH:mm:ss") + $" | {level} @ Echoform ";
 
         var stackTrace = new StackTrace();
-        var frame = stackTrace.GetFrame(1); // Get the caller frame
+        var frame = stackTrace.GetFrame(2); // Get the caller frame
 
         if (frame != null) {
             var fileName = frame.GetMethod()?.DeclaringType?.FullName;
