@@ -9,6 +9,8 @@ public partial class Player : CharacterBody3D {
     [Export] public PlayerOrbitCamera CameraRig;
     [Export] public float CameraDistanceY = 1f;
 
+    public bool ControlEnabled = true;
+
     private AnimationPlayer characterAnimations;
 
     public override void _Ready() {
@@ -16,6 +18,10 @@ public partial class Player : CharacterBody3D {
     }
 
     public override void _PhysicsProcess(double delta) {
+        if (!ControlEnabled) {
+            return;
+        }
+
         Vector3 velocity = Velocity;
 
         // Add the gravity.

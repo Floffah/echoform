@@ -8,6 +8,9 @@ using Zeroconf;
 public partial class AuthoritativeServerConnection : Node {
 	public static AuthoritativeServerConnection Instance { get; private set; }
 
+	[Signal]
+	public delegate void ConnectedEventHandler();
+
 	public Godot.Collections.Dictionary<string, bool> EnforcedState { get; private set; } = new();
 
 	private string origin;
@@ -22,7 +25,7 @@ public partial class AuthoritativeServerConnection : Node {
 
 	public override void _Ready() {
 		if (Instance != null) {
-			GD.PrintErr("AuthoritativeServerConnection instance already exists. Destroying duplicate.");
+			EchoformLogger.Default.Error("AuthoritativeServerConnection instance already exists. Destroying duplicate.");
 			QueueFree();
 			return;
 		}
@@ -37,22 +40,27 @@ public partial class AuthoritativeServerConnection : Node {
 				return;
 			}
 
-			GD.Print("Discovered Zeroconf host: ", host.DisplayName, " at ", host.IPAddress);
+			EchoformLogger.Default.Debug("Discovered Zeroconf host: ", host.DisplayName, " at ", host.IPAddress);
 
 			host.Services.TryGetValue("echoform._http._tcp.local.", out var service);
 			if (service != null) {
 				origin = $"{host.IPAddress}:{service.Port}";
 				connectReady = true;
-				GD.Print("Using EchoformMMO service at: ", origin);
+				EchoformLogger.Default.Info("Using EchoformMMO service at: ", origin);
 			} else {
-				GD.PrintErr("No EchoformMMO service found on host: ", host.DisplayName);
+				EchoformLogger.Default.Debug("No EchoformMMO service found on host: ", host.DisplayName);
 			}
 		}, error => {
-			GD.PrintErr("Error during Zeroconf service discovery: ", error);
+			EchoformLogger.Default.Error("Error during Zeroconf service discovery: ", error);
 			origin = "localhost:3000";
 			Authenticate();
 		}, () => {
-			GD.Print("Zeroconf service discovery completed.");
+			EchoformLogger.Default.Debug("Zeroconf service discovery completed.");
+			if (origin == null) {
+				EchoformLogger.Default.Debug("No Zeroconf service found. Falling back to localhost:3000");
+				origin = "localhost:3000";
+				Authenticate();
+			}
 		});
 	}
 
@@ -78,19 +86,16 @@ public partial class AuthoritativeServerConnection : Node {
 		var json = Json.ParseString(Encoding.UTF8.GetString(body)).AsGodotDictionary();
 
 		if (responseCode == 200) {
-			GD.Print("Authentication successful. Response: ", json);
+			EchoformLogger.Default.Info("Authentication succeeded.");
+			EchoformLogger.Default.Debug("Auth Response: ", json);
 			_accessToken = json["accessToken"].AsString();
 			_refreshToken = json["refreshToken"].AsString();
 
 			Connect();
 		} else {
-			GD.PrintErr("Authentication failed. Response code: ", responseCode, ", Body: ",
+			EchoformLogger.Default.Error("Authentication failed. Response code: ", responseCode, ", Body: ",
 				Encoding.UTF8.GetString(body));
-
-			var couldntConnectModal = couldntConnectModalScene.Instantiate<CenterContainer>();
-			couldntConnectModal.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-			GetTree().Root.AddChild(couldntConnectModal);
-
+			ShowCouldntConnectModal();
 			Reset();
 		}
 	}
@@ -108,7 +113,7 @@ public partial class AuthoritativeServerConnection : Node {
 	}
 
 	private void Connect() {
-		GD.Print("Starting authoritative server connection...");
+		EchoformLogger.Default.Debug("Starting authoritative server connection...");
 		_socket = new WebSocketPeer();
 
 		_socket.SetHeartbeatInterval(5);
@@ -121,7 +126,8 @@ public partial class AuthoritativeServerConnection : Node {
 		if (error != Error.Ok) {
 			Reset();
 
-			GD.PrintErr("Failed to connect to authoritative server: ", error);
+			EchoformLogger.Default.Error("Failed to connect to authoritative server: ", error);
+			ShowCouldntConnectModal();
 			return;
 		} else {
 			SetProcess(true);
@@ -146,34 +152,38 @@ public partial class AuthoritativeServerConnection : Node {
 				var packet = _socket.GetPacket();
 				if (packet is byte[] data) {
 					var message = System.Text.Encoding.UTF8.GetString(data);
-					GD.Print("Received message: ", message);
+					EchoformLogger.Default.Debug("Received message: ", message);
 
 					var parsedPacket = PacketTranslator.GetFromString(message);
 
 					if (parsedPacket is ClientboundPacket clientboundPacket) {
 						clientboundPacket.Handle();
-						GD.Print("Handled packet: ", clientboundPacket.Id);
+						EchoformLogger.Default.Debug("Handled packet: ", clientboundPacket.Id);
 					} else {
-						GD.PrintErr("Received unknown packet type: ", parsedPacket?.GetType());
+						EchoformLogger.Default.Debug("Received unknown packet type: ", parsedPacket?.GetType());
 					}
 				} else {
-					GD.PrintErr("Received non-byte packet: ", packet);
+					EchoformLogger.Default.Debug("Received non-byte packet: ", packet);
 				}
 			}
 		} else if (state == WebSocketPeer.State.Closing) {
-			GD.Print("WebSocket is closing.");
+			EchoformLogger.Default.Debug("WebSocket is closing.");
 		} else if (state == WebSocketPeer.State.Closed) {
-			GD.Print("WebSocket is closed.", _socket.GetPacketError());
+			EchoformLogger.Default.Debug("WebSocket is closed.", _socket.GetPacketError());
 
 			Reset();
 		} else {
-			GD.Print("WebSocket state: ", state);
+			EchoformLogger.Default.Debug("WebSocket state: ", state);
 		}
+	}
+
+	public void EmitConnected() {
+		EmitSignal(SignalName.Connected);
 	}
 
 	public void SendPacket(ServerboundPacket packet) {
 		if (_socket == null || _socket.GetReadyState() != WebSocketPeer.State.Open) {
-			GD.PrintErr("Cannot send packet, WebSocket is not open.");
+			EchoformLogger.Default.Error("Cannot send packet, WebSocket is not open.");
 			return;
 		}
 
@@ -186,10 +196,16 @@ public partial class AuthoritativeServerConnection : Node {
 		var jsonString = Json.Stringify(serializedPacket);
 
 		_socket.SendText(jsonString);
-		GD.Print("Sent packet: ", jsonString);
+		EchoformLogger.Default.Debug("Sent packet: ", jsonString);
 	}
 
 	public void SendReady() {
 		SendPacket(new ClientReadyPacket());
+	}
+
+	private void ShowCouldntConnectModal() {
+		var couldntConnectModal = couldntConnectModalScene.Instantiate<CenterContainer>();
+		couldntConnectModal.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+		GetTree().Root.AddChild(couldntConnectModal);
 	}
 }

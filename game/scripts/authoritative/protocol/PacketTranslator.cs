@@ -5,14 +5,14 @@ public class PacketTranslator {
         var dictionary = Json.ParseString(packetString).AsGodotDictionary();
 
         if (!dictionary.ContainsKey("id")) {
-            GD.PrintErr("Packet does not contain 'id' key: ", packetString);
+            EchoformLogger.Default.Error("Packet does not contain 'id' key: ", packetString);
             return null;
         }
 
         var packetId = dictionary["id"].AsStringName();
         var data = dictionary.ContainsKey("data") ? dictionary["data"] : default;
 
-        GD.Print("Found packet of id: ", packetId);
+        EchoformLogger.Default.Debug("Found packet of id: ", packetId);
 
         ClientboundPacket packet;
 
@@ -27,7 +27,7 @@ public class PacketTranslator {
                 packet = new ForceScenePacket();
                 break;
             default:
-                GD.PrintErr("Unknown packet id: ", packetId);
+                EchoformLogger.Default.Debug("Unknown packet id: ", packetId);
                 return null;
         }
 

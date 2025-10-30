@@ -1,0 +1,12 @@
+[gd_resource type="Environment" format=3 uid="uid://biwg4jb5vug7u"]
+
+[resource]
+background_mode = 2
+ambient_light_color = Color(0.17641911, 0.17641908, 0.17641908, 1)
+ssr_enabled = true
+ssr_max_steps = 150
+ssao_enabled = true
+ssil_enabled = true
+glow_enabled = true
+glow_normalized = true
+adjustment_brightness = 0.84
