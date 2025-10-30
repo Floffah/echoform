@@ -11,7 +11,7 @@ public partial class CinematicPlayerCamera : PlayerOrbitCamera {
 
     private Vector3 _cinematicTargetPosition;
     private Quaternion _cinematicTargetRotation;
-    private float _cinematicLerpSpeed = 3f;
+    private readonly float _cinematicLerpSpeed = 3f;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready() {
@@ -37,7 +37,6 @@ public partial class CinematicPlayerCamera : PlayerOrbitCamera {
         var tween = GetTree().CreateTween();
 
         // Build target transform
-        var currentTransform = GlobalTransform;
         var targetTransform = new Transform3D().LookingAt(targetLookAt, Vector3.Up);
         targetTransform.Origin = targetPosition;
 
