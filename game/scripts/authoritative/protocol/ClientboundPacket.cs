@@ -6,6 +6,6 @@ public class ClientboundPacket : Packet {
     }
 
     public virtual void Handle() {
-        GD.Print("No handler implemented for packet: ", Id);
+        EchoformLogger.Default.Debug("No handler implemented for packet: ", Id);
     }
 }

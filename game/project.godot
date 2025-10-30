@@ -11,14 +11,19 @@ config_version=5
 [application]
 
 config/name="EchoformMMOGame"
-run/main_scene="res://scenes/connecting_menu/connecting_menu.tscn"
+run/main_scene="uid://1q85kxr022wx"
+run/enable_alt_space_menu=true
 config/features=PackedStringArray("4.5", "C#", "Forward Plus")
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/fullsize=false
+boot_splash/image="uid://d4gno0l43h5im"
 config/icon="res://icon.svg"
 
 [autoload]
 
 AuthoritativeServerConnection="*res://scripts/authoritative/AuthoritativeServerConnection.cs"
 GlobalLoading="*res://scripts/globals/global_loading.gd"
+EchoformLogger="*res://scripts/util/EchoformLogger.cs"
 
 [debug]
 
@@ -81,3 +86,4 @@ zoom_out={
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/use_taa=true

@@ -17,6 +17,6 @@ public class SetEnforcedStatePacket : ClientboundPacket {
     public override void Handle() {
         AuthoritativeServerConnection.Instance.EnforcedState.Add(Key, Value);
 
-        GD.Print($"Enforced state updated: {Key} = {Value}");
+        EchoformLogger.Default.Debug($"Enforced state updated: {Key} = {Value}");
     }
 }

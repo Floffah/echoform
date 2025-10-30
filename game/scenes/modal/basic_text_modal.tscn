@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bnyr4aeean5tf" path="res://scenes/modal/basic_text_modal.gd" id="1_37te1"]
 [ext_resource type="Theme" uid="uid://cfw15mand7swi" path="res://scenes/modal/header_theme.tres" id="1_bfvhs"]
-[ext_resource type="Theme" uid="uid://cpub04oardilt" path="res://scenes/connecting_menu/content_theme.tres" id="2_37te1"]
+[ext_resource type="Theme" uid="uid://cpub04oardilt" path="res://scenes/modal/content_theme.tres" id="2_37te1"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_84nss"]
 font_size = 21

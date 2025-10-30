@@ -13,5 +13,7 @@ public class WelcomePacket : ClientboundPacket {
         ServerVersion = dictionary["serverVersion"].AsString();
         Environment = dictionary["environment"].AsString();
         FeatureFlags = dictionary["featureFlags"].AsStringArray();
+
+        AuthoritativeServerConnection.Instance.EmitConnected();
     }
 }
