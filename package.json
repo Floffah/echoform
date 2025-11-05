@@ -6,9 +6,9 @@
   ],
   "type": "module",
   "scripts": {
-    "docs:dev": "vitepress dev docs --shamefullyHoist",
-    "docs:build": "vitepress build docs --shamefullyHoist",
-    "docs:preview": "vitepress preview docs --shamefullyHoist"
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "packageManager": "bun@1.3.1",
   "devDependencies": {
