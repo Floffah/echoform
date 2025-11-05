@@ -1,0 +1,1 @@
+You can see an outline of the story [here](./story.html)

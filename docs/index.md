@@ -7,10 +7,13 @@ hero:
   tagline: Technical documentation for the Echoform game authoritative server
   actions:
     - theme: brand
-      text: Reference
-      link: /reference
+      text: Backend Reference
+      link: /backend-reference
     - theme: alt
-      text: API Examples
-      link: /api-examples
+      text: Game Documentation
+      link: /game
 ---
 
+::: info
+I am looking for artists to help out with graphics & 3d art 🙂, email echoform@ramdta.com if interested
+:::
