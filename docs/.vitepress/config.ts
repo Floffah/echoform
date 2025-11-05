@@ -8,6 +8,7 @@ export default withMermaid({
         "Technical documentation for the Echoform game authoritative server",
     appearance: true,
     lastUpdated: true,
+    base: "/echoform/",
 
     themeConfig: {
         // https://vitepress.dev/reference/default-theme-config
