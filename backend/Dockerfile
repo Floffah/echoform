@@ -1,3 +1,5 @@
+# This dockerfile assumes a cwd of ../ (parent of backend folder)
+
 FROM oven/bun AS build
 
 WORKDIR /usr/src/app
@@ -8,7 +10,7 @@ COPY --from=node:22 /usr/local/bin/node /usr/local/bin/node
 COPY . .
 
 RUN bun install
-RUN bun run build
+RUN bun run --cwd backend build
 
 FROM oven/bun
 
@@ -23,9 +25,10 @@ ENV PORT=${PORT}
 ENV DATABASE_URL=${DATABASE_URL}
 
 COPY --from=node:22 /usr/local/bin/node /usr/local/bin/node
-COPY ./package.json ./package.json
-COPY ./tsconfig.json ./tsconfig.json
 COPY ./bun.lock ./bun.lock
-COPY --from=build /usr/src/app/dist ./dist
+COPY ./package.json ./package.json
+RUN mkdir "backend"
+COPY ./backend/package.json ./backend/package.json
+COPY --from=build /usr/src/app/backend/dist ./backend/dist
 
-CMD [ "bun", "run", "dist/index.js" ]
+CMD [ "bun", "run", "--cwd", "backend", "dist/index.js" ]

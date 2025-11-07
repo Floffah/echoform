@@ -13,3 +13,17 @@ services:
       POSTGRES_PASSWORD: echoform
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: echoform-authoritative
+  backend:
+    build:
+      context: ../
+      dockerfile: backend/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - pubsub
+    environment:
+      DATABASE_URL: postgresql://echoform:echoform@db:5432/echoform-authoritative
+      REDIS_URL: redis://pubsub:6379
+    profiles:
+    - backend
