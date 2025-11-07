@@ -1,7 +1,7 @@
 import { EnforcedStateName } from "@/enums/EnforcedStateName.ts";
+import { ErrorCode } from "@/enums/ErrorCode.ts";
 import { SceneName } from "@/enums/SceneName.ts";
 import { defineHandler } from "@/lib/defineHandler.ts";
-import { ErrorCode } from "@/enums/ErrorCode.ts";
 
 export const clientReady = defineHandler(
     "client_ready",
