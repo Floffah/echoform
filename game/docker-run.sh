@@ -1,0 +1,1 @@
+docker run -p 8080:8080 --name echoform-server --platform linux/x86_64 -e DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 echoform/echoform-server:latest

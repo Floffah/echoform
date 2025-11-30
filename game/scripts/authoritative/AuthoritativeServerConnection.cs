@@ -24,6 +24,11 @@ public partial class AuthoritativeServerConnection : Node {
 		ResourceLoader.Load<PackedScene>("res://scenes/modal/specialised/couldnt_connect_modal.tscn");
 
 	public override void _Ready() {
+		if (OS.HasFeature("dedicated_server")) {
+			EchoformLogger.Default.Info("Running in dedicated server mode. Skipping client authoritative server connection.");
+			return;
+		}
+
 		if (Instance != null) {
 			EchoformLogger.Default.Error("AuthoritativeServerConnection instance already exists. Destroying duplicate.");
 			QueueFree();

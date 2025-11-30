@@ -1,0 +1,1 @@
+docker build -t echoform/echoform-server:latest -f server.Dockerfile --platform linux/x86_64 .

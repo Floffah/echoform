@@ -13,39 +13,23 @@ export default withMermaid({
     themeConfig: {
         // https://vitepress.dev/reference/default-theme-config
         nav: [
-            { text: "Game", link: "/game" },
-            { text: "Backend Reference", link: "/backend-reference" },
+            { text: "Technical Reference", link: "/tech-refs" },
+            { text: "Universe & Lore", link: "https://echoform.vvd.world" },
         ],
 
         sidebar: {
-            "/backend-reference": [
+            "/tech-refs": [
                 {
                     text: "Flows",
-                    link: "/backend-reference/flows",
+                    link: "/tech-refs/flows",
                     items: [
                         {
                             text: "Authentication",
-                            link: "/backend-reference/flows/authentication",
+                            link: "/tech-refs/flows/authentication",
                         },
                     ],
                 },
-            ],
-            "/game": [
-                {
-                    text: "Game",
-                    link: "/game",
-                    items: [
-                        {
-                            text: "Story",
-                            link: "/game/story",
-                        },
-                        {
-                            text: "Music",
-                            link: "/game/music",
-                        },
-                    ],
-                }
-            ],
+            ]
         },
 
         socialLinks: [

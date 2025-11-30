@@ -7,11 +7,11 @@ hero:
   tagline: Technical documentation for the Echoform game authoritative server
   actions:
     - theme: brand
-      text: Backend Reference
-      link: /backend-reference
+      text: Technical Reference
+      link: /tech-refs
     - theme: alt
-      text: Game Documentation
-      link: /game
+      text: Universe & Lore
+      link: https://echoform.vvd.world
 ---
 
 ::: info
