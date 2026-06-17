@@ -47,6 +47,9 @@ jobs:
           node-version: 22
       - name: Setup Pages
         uses: actions/configure-pages@v4
+      - uses: hustcer/setup-nu@v3
+        with:
+          version: "0.113.1"
       - name: Install dependencies
         run: bun install # or pnpm install / yarn install / bun install
       - name: Build with VitePress
