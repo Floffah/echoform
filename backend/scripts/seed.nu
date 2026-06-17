@@ -1,0 +1,1 @@
+http post --content-type application/json http://localhost:8080/v1/user/register {username: floffah, password: password}

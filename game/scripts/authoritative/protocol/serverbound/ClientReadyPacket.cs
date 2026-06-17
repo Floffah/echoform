@@ -1,6 +1,5 @@
-
-using System.Collections.Generic;
 using Godot;
+using Godot.Collections;
 
 public class ClientReadyPacket : ServerboundPacket {
     public ClientReadyPacket() {
@@ -8,6 +7,6 @@ public class ClientReadyPacket : ServerboundPacket {
     }
 
     public override Variant Serialize() {
-        return default;
+        return new Dictionary();
     }
 }

@@ -5,14 +5,14 @@ services:
     ports:
       - "6379:6379"
   db:
-    image: postgres:17
+    image: postgres:18
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: echoform
       POSTGRES_PASSWORD: echoform
       POSTGRES_HOST_AUTH_METHOD: trust
-      POSTGRES_DB: echoform-authoritative
+      POSTGRES_DB: echoform
   backend:
     build:
       context: ../
@@ -23,7 +23,7 @@ services:
       - db
       - pubsub
     environment:
-      DATABASE_URL: postgresql://echoform:echoform@db:5432/echoform-authoritative
+      DATABASE_URL: postgresql://echoform:echoform@db:5432/echoform
       REDIS_URL: redis://pubsub:6379
     profiles:
     - backend

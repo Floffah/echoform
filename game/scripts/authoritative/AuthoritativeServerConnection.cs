@@ -16,6 +16,7 @@ public partial class AuthoritativeServerConnection : Node {
 	private string origin;
 	private bool connectReady = false;
 	private WebSocketPeer _socket;
+	private bool _helloSent;
 
 	private string _accessToken;
 	private string _refreshToken;
@@ -113,6 +114,7 @@ public partial class AuthoritativeServerConnection : Node {
 
 		_accessToken = null;
 		_refreshToken = null;
+		_helloSent = false;
 
 		SetProcess(false);
 	}
@@ -153,6 +155,15 @@ public partial class AuthoritativeServerConnection : Node {
 		var state = _socket.GetReadyState();
 
 		if (state == WebSocketPeer.State.Open) {
+			if (!_helloSent) {
+				SendPacket(new ClientDeclarationPacket {
+					AccessToken = _accessToken,
+					ClientVersion = "dev",
+					Device = "EchoformMMOGame, Godot 4.6.3"
+				});
+				_helloSent = true;
+			}
+
 			while (_socket.GetAvailablePacketCount() > 0) {
 				var packet = _socket.GetPacket();
 				if (packet is byte[] data) {

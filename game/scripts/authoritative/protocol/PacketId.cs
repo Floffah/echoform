@@ -1,12 +1,10 @@
 public class PacketId {
     // clientbound
-    public const string KeepAlive = "keepalive";
-    public const string Acknowledge = "acknowledge";
-    public const string Welcome = "welcome";
-    public const string SetEnforcedState = "set_enforced_state";
-    public const string ForceScene = "force_scene";
+    public const string Welcome = "server.welcome";
+    public const string SetEnforcedState = "server.set_enforced_state";
+    public const string ForceScene = "server.force_scene";
 
     // serverbound
-    public const string ClientDeclaration = "client_declaration";
-    public const string ClientReady = "client_ready";
+    public const string ClientDeclaration = "client.hello";
+    public const string ClientReady = "client.ready";
 }

@@ -1,0 +1,28 @@
+set shell := ['nu', '-c']
+set dotenv-load := true
+
+alias gen := generate
+
+build:
+	go build -o build/api cmd/api/api.go
+
+generate:
+	go generate ./...
+
+test:
+	go test -v -cover ./...
+
+format:
+	go fmt ./...
+
+dev:
+	go run cmd/api/api.go
+
+seed: db-migrate
+	nu ./scripts/seed.nu
+
+db-migrate:
+	TERN_MIGRATIONS=./data/migrations/ go tool tern migrate
+
+db-rollback:
+	TERN_MIGRATIONS=./data/migrations/ go tool tern migrate -d -1
