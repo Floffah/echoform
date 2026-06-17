@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "server.force_scene.schema.json",
+  "title": "ServerForceScene",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scene"],
+  "properties": {
+    "scene": {
+      "type": "string",
+      "enum": ["INTRO"]
+    }
+  }
+}

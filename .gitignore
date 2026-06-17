@@ -1,11 +1,5 @@
-.idea
-
-# moon
-.moon/cache
-.moon/docker
-
-# Created by https://www.toptal.com/developers/gitignore/api/node,godot,macos,csharp,windows,jetbrains+all,turbo
-# Edit at https://www.toptal.com/developers/gitignore?templates=node,godot,macos,csharp,windows,jetbrains+all,turbo
+# Created by https://www.toptal.com/developers/gitignore/api/node,godot,macos,turbo,csharp,windows,jetbrains+all,go
+# Edit at https://www.toptal.com/developers/gitignore?templates=node,godot,macos,turbo,csharp,windows,jetbrains+all,go
 
 ### Csharp ###
 ## Ignore Visual Studio temporary files, build results, and
@@ -405,14 +399,37 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+### Go ###
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
 ### Godot ###
 # Godot 4+ specific ignores
 .godot/
 
 # Godot-specific ignores
 .import/
-# export.cfg
-# export_presets.cfg
+export.cfg
+export_presets.cfg
 
 # Imported translations (automatically generated from CSV files)
 *.translation
@@ -505,6 +522,7 @@ fabric.properties
 # Ignore everything but code style settings and run configurations
 # that are supposed to be shared within teams.
 
+.idea
 .idea/*
 
 !.idea/codeStyles
@@ -706,4 +724,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# End of https://www.toptal.com/developers/gitignore/api/node,godot,macos,csharp,windows,jetbrains+all,turbo
+# End of https://www.toptal.com/developers/gitignore/api/node,godot,macos,turbo,csharp,windows,jetbrains+all,go

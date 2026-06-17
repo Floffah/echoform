@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "server.welcome.schema.json",
+  "title": "ServerWelcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connectionId", "serverVersion", "environment", "featureFlags"],
+  "properties": {
+    "connectionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "serverVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["development", "production"]
+    },
+    "featureFlags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["enableExperimentalFeatures", "enableDebugMode"]
+      }
+    }
+  }
+}

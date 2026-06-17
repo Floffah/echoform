@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "server.set_enforced_state.schema.json",
+  "title": "ServerSetEnforcedState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "value"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": ["CAN_HOME"]
+    },
+    "value": {
+      "type": "boolean"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "server.error.schema.json",
+  "title": "ServerError",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code"],
+  "properties": {
+    "message": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string",
+      "enum": [
+        "INTERNAL_ERROR",
+        "INVALID_MESSAGE_FORMAT",
+        "INVALID_ACCESS_TOKEN",
+        "SESSION_EXPIRED",
+        "AUTHENTICATION_TIMEOUT",
+        "INVALID_RECONNECTION_TOKEN",
+        "CLIENT_ALREADY_READY"
+      ]
+    },
+    "fatal": {
+      "type": "boolean"
+    }
+  }
+}

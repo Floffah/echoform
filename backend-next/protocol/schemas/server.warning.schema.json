@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "server.warning.schema.json",
+  "title": "ServerWarning",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["message", "code"],
+  "properties": {
+    "message": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string",
+      "enum": ["MISSING_ACCESS_TOKEN"]
+    }
+  }
+}

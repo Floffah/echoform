@@ -13,7 +13,7 @@ ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=${DOTNET_SYSTEM_GLOBALIZATION_INVARIAN
 
 RUN mkdir -v -p ./build/server
 
-RUN godot --headless --verbose --export-release "Linux Server" ./build/server/out --main-scene res://scenes/intro.tsc
+RUN godot --headless --verbose --export-release "Linux Server" ./build/server/out --main-scene res://scenes/intro.tscn
 
 FROM ubuntu:24.04
 
