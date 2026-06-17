@@ -2,16 +2,17 @@ set shell := ['nu', '-c']
 set dotenv-load := true
 
 mod backend
+mod game
 
 alias gen := generate
 
 default:
 	@just --list
 
-build: backend::build
-generate: backend::generate
-test: backend::test
-format: backend::format
+build: backend::build game::build
+generate: backend::generate game::generate
+test: backend::test game::test
+format: backend::format game::format
 dev: backend::dev
 db-migrate: backend::db-migrate
 db-rollback: backend::db-rollback

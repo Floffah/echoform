@@ -21,7 +21,7 @@ type packetSpec struct {
 	ID        string
 	Direction string
 	Schema    string
-	GoType    string
+	TypeName  string
 }
 
 type packet struct {
@@ -34,10 +34,11 @@ type packet struct {
 }
 
 type field struct {
-	JSONName string
-	GoName   string
-	GoType   string
-	Required bool
+	JSONName   string
+	Name       string
+	GoType     string
+	CSharpType string
+	Required   bool
 }
 
 type enumType struct {
@@ -53,14 +54,15 @@ type enumValue struct {
 func main() {
 	schemasDir := flag.String("schemas", "", "path to protocol schema directory")
 	outPath := flag.String("out", "", "path to generated Go output")
+	csharpOutPath := flag.String("csharp-out", "", "path to generated C# output")
 	packageName := flag.String("package", "protocol", "generated Go package name")
 	flag.Parse()
 
 	if *schemasDir == "" {
 		fatalf("-schemas is required")
 	}
-	if *outPath == "" {
-		fatalf("-out is required")
+	if *outPath == "" && *csharpOutPath == "" {
+		fatalf("at least one of -out or -csharp-out is required")
 	}
 
 	packets, err := loadPackets(*schemasDir)
@@ -68,17 +70,35 @@ func main() {
 		fatalf("%v", err)
 	}
 
-	generated, err := generate(*packageName, packets)
-	if err != nil {
-		fatalf("%v", err)
+	if *outPath != "" {
+		generated, err := generate(*packageName, packets)
+		if err != nil {
+			fatalf("%v", err)
+		}
+		if err := writeGeneratedFile(*outPath, generated); err != nil {
+			fatalf("%v", err)
+		}
 	}
 
-	if err := os.MkdirAll(filepath.Dir(*outPath), 0755); err != nil {
-		fatalf("create output directory: %v", err)
+	if *csharpOutPath != "" {
+		generated, err := generateCSharp(packets)
+		if err != nil {
+			fatalf("%v", err)
+		}
+		if err := writeGeneratedFile(*csharpOutPath, generated); err != nil {
+			fatalf("%v", err)
+		}
 	}
-	if err := os.WriteFile(*outPath, generated, 0644); err != nil {
-		fatalf("write output: %v", err)
+}
+
+func writeGeneratedFile(path string, data []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("create output directory: %w", err)
 	}
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("write output: %w", err)
+	}
+	return nil
 }
 
 func loadPackets(schemasDir string) ([]packet, error) {
@@ -120,13 +140,13 @@ func loadPackets(schemasDir string) ([]packet, error) {
 		if spec.Schema == "" {
 			return nil, fmt.Errorf("packet %q schema is required", spec.ID)
 		}
-		if spec.GoType == "" || !isExportedIdentifier(spec.GoType) {
+		if spec.TypeName == "" || !isExportedIdentifier(spec.TypeName) {
 			return nil, fmt.Errorf("packet %q goType must be an exported Go identifier", spec.ID)
 		}
-		if seenTypes[spec.GoType] {
-			return nil, fmt.Errorf("duplicate goType %q", spec.GoType)
+		if seenTypes[spec.TypeName] {
+			return nil, fmt.Errorf("duplicate type name %q", spec.TypeName)
 		}
-		seenTypes[spec.GoType] = true
+		seenTypes[spec.TypeName] = true
 
 		schemaBytes, err := os.ReadFile(schemaPath)
 		if err != nil {
@@ -140,8 +160,8 @@ func loadPackets(schemasDir string) ([]packet, error) {
 		if schema.Title == "" {
 			return nil, fmt.Errorf("schema %q must define title for generated Go type", schemaPath)
 		}
-		if schema.Title != spec.GoType {
-			return nil, fmt.Errorf("schema %q title changed while loading: got %q, expected %q", schemaPath, schema.Title, spec.GoType)
+		if schema.Title != spec.TypeName {
+			return nil, fmt.Errorf("schema %q title changed while loading: got %q, expected %q", schemaPath, schema.Title, spec.TypeName)
 		}
 
 		absSchemaPath, err := filepath.Abs(schemaPath)
@@ -210,7 +230,7 @@ func specFromSchemaPath(schemaPath string) (packetSpec, error) {
 		ID:        id,
 		Direction: direction,
 		Schema:    filepath.ToSlash(filepath.Join(filepath.Base(filepath.Dir(schemaPath)), name)),
-		GoType:    schema.Title,
+		TypeName:  schema.Title,
 	}, nil
 }
 
@@ -263,16 +283,17 @@ func fieldsForSchema(spec packetSpec, schema *jsonschema.Schema) ([]field, []enu
 			return nil, nil, fmt.Errorf("property %q is missing schema", propertyName)
 		}
 
-		goType, propertyEnums, err := goTypeForSchema(spec.GoType, propertyName, propertySchema, required[propertyName])
+		goType, propertyEnums, err := goTypeForSchema(spec.TypeName, propertyName, propertySchema, required[propertyName])
 		if err != nil {
 			return nil, nil, fmt.Errorf("property %q: %w", propertyName, err)
 		}
 
 		fields = append(fields, field{
-			JSONName: propertyName,
-			GoName:   exportedName(propertyName),
-			GoType:   goType,
-			Required: required[propertyName],
+			JSONName:   propertyName,
+			Name:       exportedName(propertyName),
+			GoType:     goType,
+			CSharpType: csharpTypeFromGoType(goType),
+			Required:   required[propertyName],
 		})
 		enums = append(enums, propertyEnums...)
 	}
@@ -426,13 +447,13 @@ func writePayloadTypes(buf *bytes.Buffer, packets []packet) {
 			fmt.Fprintf(buf, ")\n\n")
 		}
 
-		fmt.Fprintf(buf, "type %s struct {\n", packet.Spec.GoType)
+		fmt.Fprintf(buf, "type %s struct {\n", packet.Spec.TypeName)
 		for _, field := range packet.Fields {
 			tag := field.JSONName
 			if !field.Required {
 				tag += ",omitempty"
 			}
-			fmt.Fprintf(buf, "%s %s `json:%s`\n", field.GoName, field.GoType, strconv.Quote(tag))
+			fmt.Fprintf(buf, "%s %s `json:%s`\n", field.Name, field.GoType, strconv.Quote(tag))
 		}
 		fmt.Fprintf(buf, "}\n\n")
 	}
@@ -440,8 +461,8 @@ func writePayloadTypes(buf *bytes.Buffer, packets []packet) {
 
 func writePacketTypes(buf *bytes.Buffer, packets []packet) {
 	for _, packet := range packets {
-		packetType := packet.Spec.GoType + "Packet"
-		fmt.Fprintf(buf, "type %s struct { Data %s `json:\"data\"` }\n\n", packetType, packet.Spec.GoType)
+		packetType := packet.Spec.TypeName + "Packet"
+		fmt.Fprintf(buf, "type %s struct { Data %s `json:\"data\"` }\n\n", packetType, packet.Spec.TypeName)
 		fmt.Fprintf(buf, "func (%s) ID() PacketID { return %s }\n", packetType, packetIDConst(packet))
 		if packet.Spec.Direction == "serverbound" {
 			fmt.Fprintf(buf, "func (%s) isServerboundPacket() {}\n\n", packetType)
@@ -530,9 +551,9 @@ func writeDecode(buf *bytes.Buffer, label string, direction string, packets []pa
 			continue
 		}
 		fmt.Fprintf(buf, "case %s:\n", packetIDConst(packet))
-		fmt.Fprintf(buf, "payload, err := decodePacketData[%s](envelope.ID, envelope.Data)\n", packet.Spec.GoType)
+		fmt.Fprintf(buf, "payload, err := decodePacketData[%s](envelope.ID, envelope.Data)\n", packet.Spec.TypeName)
 		fmt.Fprintf(buf, "if err != nil { return nil, err }\n")
-		fmt.Fprintf(buf, "return %sPacket{Data: payload}, nil\n", packet.Spec.GoType)
+		fmt.Fprintf(buf, "return %sPacket{Data: payload}, nil\n", packet.Spec.TypeName)
 	}
 	fmt.Fprintf(buf, "default:\n")
 	fmt.Fprintf(buf, "return nil, fmt.Errorf(\"unknown %s packet id %%q\", envelope.ID)\n", direction)
@@ -547,15 +568,282 @@ func writeEncode(buf *bytes.Buffer, label string, direction string, packets []pa
 		if packet.Spec.Direction != direction {
 			continue
 		}
-		fmt.Fprintf(buf, "case %sPacket:\n", packet.Spec.GoType)
+		fmt.Fprintf(buf, "case %sPacket:\n", packet.Spec.TypeName)
 		fmt.Fprintf(buf, "return encodeEnvelope(%s, p.Data)\n", packetIDConst(packet))
-		fmt.Fprintf(buf, "case *%sPacket:\n", packet.Spec.GoType)
+		fmt.Fprintf(buf, "case *%sPacket:\n", packet.Spec.TypeName)
 		fmt.Fprintf(buf, "return encodeEnvelope(%s, p.Data)\n", packetIDConst(packet))
 	}
 	fmt.Fprintf(buf, "default:\n")
 	fmt.Fprintf(buf, "return nil, fmt.Errorf(\"unsupported %s packet type %%T\", packet)\n", direction)
 	fmt.Fprintf(buf, "}\n")
 	fmt.Fprintf(buf, "}\n\n")
+}
+
+func generateCSharp(packets []packet) ([]byte, error) {
+	for _, packet := range packets {
+		for _, enum := range packet.Enums {
+			for _, value := range enum.Values {
+				if _, err := csharpEnumMember(value.Value); err != nil {
+					return nil, fmt.Errorf("generate C# enum %s: %w", enum.Name, err)
+				}
+			}
+		}
+	}
+
+	var buf bytes.Buffer
+	fmt.Fprintln(&buf, "// <auto-generated>")
+	fmt.Fprintln(&buf, "// Generated by backend/cmd/protocolgen. DO NOT EDIT.")
+	fmt.Fprintln(&buf, "// </auto-generated>")
+	fmt.Fprintln(&buf, "#nullable enable")
+	fmt.Fprintln(&buf)
+	fmt.Fprintln(&buf, "using System;")
+	fmt.Fprintln(&buf, "using System.Text.Json;")
+	fmt.Fprintln(&buf, "using System.Text.Json.Serialization;")
+	fmt.Fprintln(&buf)
+	fmt.Fprintln(&buf, "namespace Echoform.Protocol;")
+	fmt.Fprintln(&buf)
+
+	writeCSharpHeaderTypes(&buf, packets)
+	writeCSharpPayloadTypes(&buf, packets)
+	writeCSharpPacketTypes(&buf, packets)
+	writeCSharpCodec(&buf, packets)
+
+	return buf.Bytes(), nil
+}
+
+func writeCSharpHeaderTypes(buf *bytes.Buffer, packets []packet) {
+	fmt.Fprintln(buf, "public static class PacketIds")
+	fmt.Fprintln(buf, "{")
+	for _, packet := range packets {
+		fmt.Fprintf(buf, "    public const string %s = %q;\n", packet.Spec.TypeName, packet.Spec.ID)
+	}
+	fmt.Fprintln(buf, "}")
+	fmt.Fprintln(buf)
+
+	fmt.Fprintln(buf, "public interface IPacket")
+	fmt.Fprintln(buf, "{")
+	fmt.Fprintln(buf, "    string Id { get; }")
+	fmt.Fprintln(buf, "}")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "public interface IServerboundPacket : IPacket")
+	fmt.Fprintln(buf, "{")
+	fmt.Fprintln(buf, "}")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "public interface IClientboundPacket : IPacket")
+	fmt.Fprintln(buf, "{")
+	fmt.Fprintln(buf, "    void Dispatch(IClientboundPacketHandler handler);")
+	fmt.Fprintln(buf, "}")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "public interface IClientboundPacketHandler")
+	fmt.Fprintln(buf, "{")
+	for _, packet := range packets {
+		if packet.Spec.Direction == "clientbound" {
+			fmt.Fprintf(buf, "    void Handle(%sPacket packet);\n", packet.Spec.TypeName)
+		}
+	}
+	fmt.Fprintln(buf, "}")
+	fmt.Fprintln(buf)
+}
+
+func writeCSharpPayloadTypes(buf *bytes.Buffer, packets []packet) {
+	for _, packet := range packets {
+		for _, enum := range packet.Enums {
+			fmt.Fprintf(buf, "[JsonConverter(typeof(JsonStringEnumConverter<%s>))]\n", enum.Name)
+			fmt.Fprintf(buf, "public enum %s\n", enum.Name)
+			fmt.Fprintln(buf, "{")
+			for _, value := range enum.Values {
+				member, _ := csharpEnumMember(value.Value)
+				fmt.Fprintf(buf, "    %s,\n", member)
+			}
+			fmt.Fprintln(buf, "}")
+			fmt.Fprintln(buf)
+		}
+
+		fmt.Fprintf(buf, "public sealed class %s\n", packet.Spec.TypeName)
+		fmt.Fprintln(buf, "{")
+		for _, field := range packet.Fields {
+			fieldType := field.CSharpType
+			if !field.Required && !strings.HasSuffix(fieldType, "?") {
+				fieldType += "?"
+			}
+			required := ""
+			if field.Required {
+				required = "required "
+			}
+			fmt.Fprintf(buf, "    [JsonPropertyName(%q)]\n", field.JSONName)
+			fmt.Fprintf(buf, "    public %s%s %s { get; init; }\n", required, fieldType, field.Name)
+		}
+		fmt.Fprintln(buf, "}")
+		fmt.Fprintln(buf)
+	}
+}
+
+func writeCSharpPacketTypes(buf *bytes.Buffer, packets []packet) {
+	for _, packet := range packets {
+		packetType := packet.Spec.TypeName + "Packet"
+		packetInterface := "IServerboundPacket"
+		if packet.Spec.Direction == "clientbound" {
+			packetInterface = "IClientboundPacket"
+		}
+
+		fmt.Fprintf(buf, "public sealed class %s : %s\n", packetType, packetInterface)
+		fmt.Fprintln(buf, "{")
+		fmt.Fprintf(buf, "    public %s(%s data)\n", packetType, packet.Spec.TypeName)
+		fmt.Fprintln(buf, "    {")
+		fmt.Fprintln(buf, "        Data = data;")
+		fmt.Fprintln(buf, "    }")
+		fmt.Fprintln(buf)
+		fmt.Fprintf(buf, "    public string Id => PacketIds.%s;\n", packet.Spec.TypeName)
+		fmt.Fprintf(buf, "    public %s Data { get; }\n", packet.Spec.TypeName)
+		if packet.Spec.Direction == "clientbound" {
+			fmt.Fprintln(buf)
+			fmt.Fprintln(buf, "    public void Dispatch(IClientboundPacketHandler handler)")
+			fmt.Fprintln(buf, "    {")
+			fmt.Fprintln(buf, "        handler.Handle(this);")
+			fmt.Fprintln(buf, "    }")
+		}
+		fmt.Fprintln(buf, "}")
+		fmt.Fprintln(buf)
+	}
+}
+
+func writeCSharpCodec(buf *bytes.Buffer, packets []packet) {
+	fmt.Fprintln(buf, "public static class ProtocolCodec")
+	fmt.Fprintln(buf, "{")
+	fmt.Fprintln(buf, "    private static readonly JsonSerializerOptions Options = new()")
+	fmt.Fprintln(buf, "    {")
+	fmt.Fprintln(buf, "        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,")
+	fmt.Fprintln(buf, "    };")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "    public static string EncodeServerbound(IServerboundPacket packet)")
+	fmt.Fprintln(buf, "    {")
+	fmt.Fprintln(buf, "        return packet switch")
+	fmt.Fprintln(buf, "        {")
+	for _, packet := range packets {
+		if packet.Spec.Direction == "serverbound" {
+			fmt.Fprintf(buf, "            %sPacket value => SerializeEnvelope(value.Id, value.Data),\n", packet.Spec.TypeName)
+		}
+	}
+	fmt.Fprintln(buf, "            _ => throw new ArgumentOutOfRangeException(nameof(packet), packet.GetType(), \"Unsupported serverbound packet type.\"),")
+	fmt.Fprintln(buf, "        };")
+	fmt.Fprintln(buf, "    }")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "    public static IClientboundPacket DecodeClientbound(string json)")
+	fmt.Fprintln(buf, "    {")
+	fmt.Fprintln(buf, "        using var document = JsonDocument.Parse(json);")
+	fmt.Fprintln(buf, "        var root = document.RootElement;")
+	fmt.Fprintln(buf, "        if (root.ValueKind != JsonValueKind.Object ||")
+	fmt.Fprintln(buf, "            !root.TryGetProperty(\"id\", out var idElement) ||")
+	fmt.Fprintln(buf, "            idElement.ValueKind != JsonValueKind.String)")
+	fmt.Fprintln(buf, "        {")
+	fmt.Fprintln(buf, "            throw new JsonException(\"Packet must be an object with a string id.\");")
+	fmt.Fprintln(buf, "        }")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "        var id = idElement.GetString();")
+	fmt.Fprintln(buf, "        var dataJson = root.TryGetProperty(\"data\", out var dataElement)")
+	fmt.Fprintln(buf, "            ? dataElement.GetRawText()")
+	fmt.Fprintln(buf, "            : \"{}\";")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "        return id switch")
+	fmt.Fprintln(buf, "        {")
+	for _, packet := range packets {
+		if packet.Spec.Direction == "clientbound" {
+			fmt.Fprintf(buf, "            PacketIds.%s => new %sPacket(DeserializeData<%s>(dataJson)),\n", packet.Spec.TypeName, packet.Spec.TypeName, packet.Spec.TypeName)
+		}
+	}
+	fmt.Fprintln(buf, "            _ => throw new JsonException($\"Unknown clientbound packet id '{id}'.\"),")
+	fmt.Fprintln(buf, "        };")
+	fmt.Fprintln(buf, "    }")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "    private static string SerializeEnvelope<T>(string id, T data)")
+	fmt.Fprintln(buf, "    {")
+	fmt.Fprintln(buf, "        return JsonSerializer.Serialize(new Envelope<T> { Id = id, Data = data }, Options);")
+	fmt.Fprintln(buf, "    }")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "    private static T DeserializeData<T>(string json)")
+	fmt.Fprintln(buf, "    {")
+	fmt.Fprintln(buf, "        return JsonSerializer.Deserialize<T>(json, Options)")
+	fmt.Fprintln(buf, "            ?? throw new JsonException($\"Packet data for {typeof(T).Name} was null.\");")
+	fmt.Fprintln(buf, "    }")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "    private sealed class Envelope<T>")
+	fmt.Fprintln(buf, "    {")
+	fmt.Fprintln(buf, "        [JsonPropertyName(\"id\")]")
+	fmt.Fprintln(buf, "        public required string Id { get; init; }")
+	fmt.Fprintln(buf)
+	fmt.Fprintln(buf, "        [JsonPropertyName(\"data\")]")
+	fmt.Fprintln(buf, "        public required T Data { get; init; }")
+	fmt.Fprintln(buf, "    }")
+	fmt.Fprintln(buf, "}")
+}
+
+func csharpTypeFromGoType(goType string) string {
+	nullable := strings.HasPrefix(goType, "*")
+	goType = strings.TrimPrefix(goType, "*")
+
+	isArray := strings.HasPrefix(goType, "[]")
+	goType = strings.TrimPrefix(goType, "[]")
+
+	csharpType := goType
+	switch goType {
+	case "string":
+		csharpType = "string"
+	case "bool":
+		csharpType = "bool"
+	case "int64":
+		csharpType = "long"
+	case "float64":
+		csharpType = "double"
+	}
+
+	if isArray {
+		csharpType += "[]"
+	}
+	if nullable {
+		csharpType += "?"
+	}
+	return csharpType
+}
+
+func csharpEnumMember(value string) (string, error) {
+	if value == "" {
+		return "", fmt.Errorf("enum value must not be empty")
+	}
+	for index, r := range value {
+		if index == 0 {
+			if !(unicode.IsLetter(r) || r == '_') {
+				return "", fmt.Errorf("enum value %q is not a valid C# identifier", value)
+			}
+			continue
+		}
+		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
+			return "", fmt.Errorf("enum value %q is not a valid C# identifier", value)
+		}
+	}
+
+	if csharpKeywords[value] {
+		return "@" + value, nil
+	}
+	return value, nil
+}
+
+var csharpKeywords = map[string]bool{
+	"abstract": true, "as": true, "base": true, "bool": true, "break": true,
+	"byte": true, "case": true, "catch": true, "char": true, "checked": true,
+	"class": true, "const": true, "continue": true, "decimal": true, "default": true,
+	"delegate": true, "do": true, "double": true, "else": true, "enum": true,
+	"event": true, "explicit": true, "extern": true, "false": true, "finally": true,
+	"fixed": true, "float": true, "for": true, "foreach": true, "goto": true,
+	"if": true, "implicit": true, "in": true, "int": true, "interface": true,
+	"internal": true, "is": true, "lock": true, "long": true, "namespace": true,
+	"new": true, "null": true, "object": true, "operator": true, "out": true,
+	"override": true, "params": true, "private": true, "protected": true, "public": true,
+	"readonly": true, "ref": true, "return": true, "sbyte": true, "sealed": true,
+	"short": true, "sizeof": true, "stackalloc": true, "static": true, "string": true,
+	"struct": true, "switch": true, "this": true, "throw": true, "true": true,
+	"try": true, "typeof": true, "uint": true, "ulong": true, "unchecked": true,
+	"unsafe": true, "ushort": true, "using": true, "virtual": true, "void": true,
+	"volatile": true, "while": true,
 }
 
 func schemaType(schema *jsonschema.Schema) string {

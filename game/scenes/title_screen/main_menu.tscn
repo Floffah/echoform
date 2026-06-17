@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://1q85kxr022wx"]
+[gd_scene format=3 uid="uid://1q85kxr022wx"]
 
 [ext_resource type="Script" uid="uid://ogabnaxf3i7u" path="res://scripts/menus/mainmenu.gd" id="1_823sm"]
 [ext_resource type="Texture2D" uid="uid://dmgk5ikupf2e3" path="res://assets/images/title_v1.png" id="1_culcy"]
@@ -11,7 +11,7 @@ shadow_size = 0
 shadow_color = Color(0, 0, 0, 0.25882354)
 shadow_offset = Vector2(2, 2)
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=2050097856]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +20,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_823sm")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1776448618]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -31,45 +31,45 @@ texture = ExtResource("1_culcy")
 expand_mode = 4
 stretch_mode = 5
 
-[node name="ButtonsContainer" type="VBoxContainer" parent="."]
+[node name="ButtonsContainer" type="VBoxContainer" parent="." unique_id=1529167796]
 layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
 grow_vertical = 2
 alignment = 1
 
-[node name="MarginContainer" type="MarginContainer" parent="ButtonsContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="ButtonsContainer" unique_id=81796241]
 layout_mode = 2
 theme_override_constants/margin_left = 150
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ButtonsContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="ButtonsContainer/MarginContainer" unique_id=1210617384]
 layout_mode = 2
 
-[node name="Label2" type="Label" parent="ButtonsContainer/MarginContainer/VBoxContainer"]
+[node name="Label2" type="Label" parent="ButtonsContainer/MarginContainer/VBoxContainer" unique_id=8346788]
 layout_mode = 2
 text = "Echoform"
 label_settings = SubResource("LabelSettings_3tcxi")
 
-[node name="ConnectingLabel" type="Label" parent="ButtonsContainer/MarginContainer/VBoxContainer"]
+[node name="ConnectingLabel" type="Label" parent="ButtonsContainer/MarginContainer/VBoxContainer" unique_id=836144251]
 layout_mode = 2
 text = "Connecting..."
 
-[node name="ActionButtonsVBox" type="VBoxContainer" parent="ButtonsContainer/MarginContainer/VBoxContainer"]
+[node name="ActionButtonsVBox" type="VBoxContainer" parent="ButtonsContainer/MarginContainer/VBoxContainer" unique_id=952896299]
 visible = false
 layout_mode = 2
 
-[node name="ContinueButton" type="Button" parent="ButtonsContainer/MarginContainer/VBoxContainer/ActionButtonsVBox"]
+[node name="ContinueButton" type="Button" parent="ButtonsContainer/MarginContainer/VBoxContainer/ActionButtonsVBox" unique_id=170599184]
 layout_mode = 2
 theme = ExtResource("2_3tcxi")
 text = "Continue Journey"
 
-[node name="SettingsButton" type="Button" parent="ButtonsContainer/MarginContainer/VBoxContainer/ActionButtonsVBox"]
+[node name="SettingsButton" type="Button" parent="ButtonsContainer/MarginContainer/VBoxContainer/ActionButtonsVBox" unique_id=2012193091]
 layout_mode = 2
 theme = ExtResource("2_3tcxi")
 text = "Settings"
 alignment = 0
 
-[node name="ExitButton" type="Button" parent="ButtonsContainer/MarginContainer/VBoxContainer/ActionButtonsVBox"]
+[node name="ExitButton" type="Button" parent="ButtonsContainer/MarginContainer/VBoxContainer/ActionButtonsVBox" unique_id=776098083]
 layout_mode = 2
 theme = ExtResource("2_3tcxi")
 text = "Exit"

@@ -5,25 +5,51 @@ on:
     - main
     paths:
     - 'game/**'
+    - 'backend/protocol/schemas/**'
+    - 'backend/cmd/protocolgen/**'
   pull_request:
     branches:
     - main
     paths:
     - 'game/**'
+    - 'backend/protocol/schemas/**'
+    - 'backend/cmd/protocolgen/**'
 
 # NOTE: If your `project.godot` is at the repository root, set `PROJECT_PATH` below to ".".
 
 env:
-  GODOT_VERSION: 4.5.1
+  GODOT_VERSION: 4.6.3
   EXPORT_NAME: echoform
   PROJECT_PATH: game
 
 jobs:
+  protocol:
+    name: Protocol codegen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: extractions/setup-just@v3
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+      - name: Generate protocol
+        run: just game::generate
+      - name: Check generated protocol
+        run: git diff --exit-code -- game/scripts/authoritative/protocol/generated/Protocol.g.cs
+      - name: Build game scripts
+        run: just game::test
+
   export-windows:
     name: Windows Export
+    needs: protocol
     runs-on: ubuntu-24.04  # Use 24.04 with godot 4
     container:
-      image: barichello/godot-ci:mono-4.5.1
+      image: barichello/godot-ci:mono-4.6.3
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,9 +75,10 @@ jobs:
 
   export-linux:
     name: Linux Export
+    needs: protocol
     runs-on: ubuntu-24.04  # Use 24.04 with godot 4
     container:
-      image: barichello/godot-ci:mono-4.5.1
+      image: barichello/godot-ci:mono-4.6.3
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,9 +102,10 @@ jobs:
 
   export-mac:
     name: Mac Export
+    needs: protocol
     runs-on: ubuntu-24.04  # Use 24.04 with godot 4
     container:
-      image: barichello/godot-ci:mono-4.5.1
+      image: barichello/godot-ci:mono-4.6.3
     steps:
       - name: Checkout
         uses: actions/checkout@v4

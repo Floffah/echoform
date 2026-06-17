@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
+using Echoform.Protocol;
 using Godot;
 using Godot.Collections;
 using Zeroconf;
 
 public partial class AuthoritativeServerConnection : Node {
+	private const string DeviceDescription = "EchoformMMOGame, Godot 4.6.3";
+
 	public static AuthoritativeServerConnection Instance { get; private set; }
 
 	[Signal]
@@ -17,6 +21,7 @@ public partial class AuthoritativeServerConnection : Node {
 	private bool connectReady = false;
 	private WebSocketPeer _socket;
 	private bool _helloSent;
+	private ClientboundPacketHandler _packetHandler;
 
 	private string _accessToken;
 	private string _refreshToken;
@@ -37,6 +42,7 @@ public partial class AuthoritativeServerConnection : Node {
 		}
 
 		Instance = this;
+		_packetHandler = new ClientboundPacketHandler(this);
 
 		IObservable<IZeroconfHost> results = ZeroconfResolver.Resolve("_http._tcp.local.");
 
@@ -125,7 +131,7 @@ public partial class AuthoritativeServerConnection : Node {
 
 		_socket.SetHeartbeatInterval(5);
 		_socket.SetHandshakeHeaders(new[] {
-			"Device: EchoformMMOGame, Godot 4.4.1",
+			"Device: " + DeviceDescription,
 			"Authorization: Bearer " + _accessToken
 		});
 		var error = _socket.ConnectToUrl($"ws://{origin}/client");
@@ -156,11 +162,11 @@ public partial class AuthoritativeServerConnection : Node {
 
 		if (state == WebSocketPeer.State.Open) {
 			if (!_helloSent) {
-				SendPacket(new ClientDeclarationPacket {
+				SendPacket(new ClientHelloPacket(new ClientHello {
 					AccessToken = _accessToken,
 					ClientVersion = "dev",
-					Device = "EchoformMMOGame, Godot 4.6.3"
-				});
+					Device = DeviceDescription
+				}));
 				_helloSent = true;
 			}
 
@@ -170,13 +176,12 @@ public partial class AuthoritativeServerConnection : Node {
 					var message = System.Text.Encoding.UTF8.GetString(data);
 					EchoformLogger.Default.Debug("Received message: ", message);
 
-					var parsedPacket = PacketTranslator.GetFromString(message);
-
-					if (parsedPacket is ClientboundPacket clientboundPacket) {
-						clientboundPacket.Handle();
-						EchoformLogger.Default.Debug("Handled packet: ", clientboundPacket.Id);
-					} else {
-						EchoformLogger.Default.Debug("Received unknown packet type: ", parsedPacket?.GetType());
+					try {
+						var parsedPacket = ProtocolCodec.DecodeClientbound(message);
+						parsedPacket.Dispatch(_packetHandler);
+						EchoformLogger.Default.Debug("Handled packet: ", parsedPacket.Id);
+					} catch (JsonException error) {
+						EchoformLogger.Default.Error("Received invalid authoritative server packet: ", error.Message);
 					}
 				} else {
 					EchoformLogger.Default.Debug("Received non-byte packet: ", packet);
@@ -197,26 +202,20 @@ public partial class AuthoritativeServerConnection : Node {
 		EmitSignal(SignalName.Connected);
 	}
 
-	public void SendPacket(ServerboundPacket packet) {
+	public void SendPacket(IServerboundPacket packet) {
 		if (_socket == null || _socket.GetReadyState() != WebSocketPeer.State.Open) {
 			EchoformLogger.Default.Error("Cannot send packet, WebSocket is not open.");
 			return;
 		}
 
-		var serializedPacketData = packet.Serialize();
-		var serializedPacket = new Godot.Collections.Dictionary {
-			["id"] = packet.Id,
-			["data"] = serializedPacketData
-		};
-
-		var jsonString = Json.Stringify(serializedPacket);
+		var jsonString = ProtocolCodec.EncodeServerbound(packet);
 
 		_socket.SendText(jsonString);
 		EchoformLogger.Default.Debug("Sent packet: ", jsonString);
 	}
 
 	public void SendReady() {
-		SendPacket(new ClientReadyPacket());
+		SendPacket(new ClientReadyPacket(new ClientReady()));
 	}
 
 	private void ShowCouldntConnectModal() {

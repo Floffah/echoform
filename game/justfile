@@ -1,0 +1,12 @@
+set shell := ['nu', '-c']
+
+generate:
+	go -C ../backend run ./cmd/protocolgen -schemas ./protocol/schemas -csharp-out ../game/scripts/authoritative/protocol/generated/Protocol.g.cs
+
+build: generate
+	dotnet build EchoformMMOGame.csproj
+
+test: build
+
+format:
+	dotnet format EchoformMMOGame.csproj --no-restore

@@ -1,4 +1,4 @@
-FROM barichello/godot-ci:mono-4.5.1 AS build
+FROM barichello/godot-ci:mono-4.6.3 AS build
 
 WORKDIR /app
 COPY . .
@@ -9,7 +9,7 @@ ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=${DOTNET_SYSTEM_GLOBALIZATION_INVARIAN
 #RUN mkdir -v -p ~/.local/share/godot/export_templates/
 #RUN mkdir -v -p ~/.config/
 #RUN mv /root/.config/godot ~/.config/godot
-#RUN mv /root/.local/share/godot/export_templates/4.5.1.stable.mono ~/.local/share/godot/export_templates/4.5.1.stable.mono
+#RUN mv /root/.local/share/godot/export_templates/4.6.3.stable.mono ~/.local/share/godot/export_templates/4.6.3.stable.mono
 
 RUN mkdir -v -p ./build/server
 
