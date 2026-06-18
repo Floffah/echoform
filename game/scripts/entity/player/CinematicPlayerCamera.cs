@@ -9,10 +9,6 @@ public partial class CinematicPlayerCamera : PlayerOrbitCamera {
 
     private bool _isAnchored;
 
-    private Vector3 _cinematicTargetPosition;
-    private Quaternion _cinematicTargetRotation;
-    private readonly float _cinematicLerpSpeed = 3f;
-
     // Called when the node enters the scene tree for the first time.
     public override void _Ready() {
         base._Ready();

@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using Echoform.Protocol;
 
 public partial class EchoformLogger : Node {
     public static EchoformLogger Default;
@@ -13,7 +14,7 @@ public partial class EchoformLogger : Node {
             Default = this;
         }
 
-        if (OS.IsDebugBuild() || Engine.IsEditorHint()) {
+        if (FeatureFlagStore.Instance.Flags.Contains(ServerWelcomeFeatureFlagsItem.enableDebugMode)) {
             Level = LogLevel.DEBUG;
         }
     }

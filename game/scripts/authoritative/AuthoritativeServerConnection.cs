@@ -41,6 +41,8 @@ public partial class AuthoritativeServerConnection : Node {
 			return;
 		}
 
+		ProcessMode = Node.ProcessModeEnum.Always;
+
 		Instance = this;
 		_packetHandler = new ClientboundPacketHandler(this);
 

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Echoform.Protocol;
 using Godot;
 
@@ -25,6 +27,7 @@ public sealed class ClientboundPacketHandler : IClientboundPacketHandler {
     public void Handle(ServerWelcomePacket packet) {
         EchoformLogger.Default.Debug(
             $"Connected to authoritative server {packet.Data.ServerVersion} as {packet.Data.ConnectionId}.");
+        FeatureFlagStore.Instance.Flags.AddRange(packet.Data.FeatureFlags);
         connection.EmitConnected();
     }
 
